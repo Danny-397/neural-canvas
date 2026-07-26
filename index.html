@@ -7,206 +7,77 @@
 <script src="https://cdn.jsdelivr.net/npm/@tensorflow/tfjs@4.10.0/dist/tf.min.js"></script>
 <style>
 * { box-sizing: border-box; margin: 0; padding: 0; }
-
 body {
-  background: #07070f;
-  color: #e0e0f0;
+  background: #07070f; color: #e0e0f0;
   font-family: -apple-system, 'Inter', system-ui, sans-serif;
-  min-height: 100vh;
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  padding: 28px 16px 40px;
-  gap: 22px;
+  min-height: 100vh; display: flex; flex-direction: column;
+  align-items: center; padding: 28px 16px 48px; gap: 22px;
 }
-
 header { text-align: center; }
-header h1 {
-  font-size: 1.5rem;
-  font-weight: 200;
-  letter-spacing: 0.4em;
-  text-transform: uppercase;
-  color: #b8a8ff;
-}
-header p {
-  font-size: 0.72rem;
-  color: #444;
-  margin-top: 5px;
-  letter-spacing: 0.15em;
-  text-transform: uppercase;
-}
+header h1 { font-size: 1.5rem; font-weight: 200; letter-spacing: 0.4em; text-transform: uppercase; color: #b8a8ff; }
+header p { font-size: 0.72rem; color: #444; margin-top: 5px; letter-spacing: 0.15em; text-transform: uppercase; }
 
-/* ── Canvas ── */
 .canvas-wrap { position: relative; }
-
 #canvas {
-  display: block;
-  border-radius: 10px;
-  box-shadow: 0 0 80px rgba(100, 60, 255, 0.18), 0 0 20px rgba(0,0,0,0.6);
-  width: 512px;
-  height: 512px;
-  max-width: calc(100vw - 32px);
-  max-height: calc(100vw - 32px);
+  display: block; border-radius: 10px;
+  box-shadow: 0 0 80px rgba(100,60,255,0.18), 0 0 20px rgba(0,0,0,0.6);
+  width: 512px; height: 512px;
+  max-width: calc(100vw - 32px); max-height: calc(100vw - 32px);
   cursor: crosshair;
-  image-rendering: pixelated;
 }
-
+.canvas-wrap.audio-active #canvas {
+  box-shadow: 0 0 80px rgba(100,60,255,0.18), 0 0 20px rgba(0,0,0,0.6), 0 0 0 2px rgba(96,220,160,0.7);
+}
 .overlay {
-  position: absolute;
-  inset: 0;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  border-radius: 10px;
-  background: rgba(7, 7, 15, 0.85);
-  font-size: 0.82rem;
-  color: #555;
-  letter-spacing: 0.1em;
-  transition: opacity 0.4s;
-  pointer-events: none;
+  position: absolute; inset: 0; display: flex; align-items: center;
+  justify-content: center; border-radius: 10px;
+  background: rgba(7,7,15,0.85); font-size: 0.82rem; color: #555;
+  letter-spacing: 0.1em; transition: opacity 0.4s; pointer-events: none;
 }
 .overlay.hidden { opacity: 0; }
 
-/* ── Controls ── */
-.controls {
-  width: 100%;
-  max-width: 512px;
-  display: flex;
-  flex-direction: column;
-  gap: 14px;
-}
+.vu-bar { width: 512px; max-width: calc(100vw - 32px); height: 3px; background: #0d0d1a; border-radius: 2px; overflow: hidden; margin-top: 6px; }
+.vu-fill { height: 100%; width: 0%; background: linear-gradient(to right, #3adc8a, #7c5aed); border-radius: 2px; transition: width 0.05s; }
 
+.controls { width: 100%; max-width: 512px; display: flex; flex-direction: column; gap: 14px; }
 .slider-row { display: flex; flex-direction: column; gap: 7px; }
-.slider-label {
-  display: flex;
-  justify-content: space-between;
-  font-size: 0.7rem;
-  letter-spacing: 0.08em;
-  text-transform: uppercase;
-}
+.slider-label { display: flex; justify-content: space-between; font-size: 0.7rem; letter-spacing: 0.08em; text-transform: uppercase; }
 .slider-label .name { color: #555; }
-.slider-label .val  { color: #9080e0; font-variant-numeric: tabular-nums; }
-
-input[type="range"] {
-  -webkit-appearance: none;
-  appearance: none;
-  width: 100%;
-  height: 2px;
-  background: linear-gradient(to right, #2a1a5e, #5a3aad);
-  border-radius: 2px;
-  outline: none;
-}
-input[type="range"]::-webkit-slider-thumb {
-  -webkit-appearance: none;
-  width: 14px; height: 14px;
-  border-radius: 50%;
-  background: #8860f0;
-  cursor: pointer;
-  box-shadow: 0 0 10px rgba(136, 96, 240, 0.7);
-  transition: box-shadow 0.15s;
-}
-input[type="range"]::-webkit-slider-thumb:hover {
-  box-shadow: 0 0 16px rgba(136, 96, 240, 0.9);
-}
-input[type="range"]::-moz-range-thumb {
-  width: 14px; height: 14px;
-  border-radius: 50%;
-  background: #8860f0;
-  cursor: pointer;
-  border: none;
-}
+.slider-label .val { color: #9080e0; font-variant-numeric: tabular-nums; }
+input[type="range"] { -webkit-appearance: none; appearance: none; width: 100%; height: 2px; background: linear-gradient(to right, #2a1a5e, #5a3aad); border-radius: 2px; outline: none; }
+input[type="range"]::-webkit-slider-thumb { -webkit-appearance: none; width: 14px; height: 14px; border-radius: 50%; background: #8860f0; cursor: pointer; box-shadow: 0 0 10px rgba(136,96,240,0.7); }
+input[type="range"]::-moz-range-thumb { width: 14px; height: 14px; border-radius: 50%; background: #8860f0; cursor: pointer; border: none; }
 
 .hr { height: 1px; background: #151525; }
-
-/* ── Palette chips ── */
-.palette-row {
-  display: flex;
-  align-items: center;
-  gap: 7px;
-  flex-wrap: wrap;
-}
-.palette-row .lbl {
-  font-size: 0.65rem;
-  color: #383858;
-  letter-spacing: 0.12em;
-  text-transform: uppercase;
-  min-width: 46px;
-}
-.chip {
-  padding: 4px 12px;
-  border-radius: 20px;
-  border: 1px solid #1e1e30;
-  background: transparent;
-  color: #444;
-  cursor: pointer;
-  font-size: 0.7rem;
-  letter-spacing: 0.06em;
-  transition: all 0.15s;
-}
+.palette-row { display: flex; align-items: center; gap: 7px; flex-wrap: wrap; }
+.palette-row .lbl { font-size: 0.65rem; color: #383858; letter-spacing: 0.12em; text-transform: uppercase; min-width: 46px; }
+.chip { padding: 4px 12px; border-radius: 20px; border: 1px solid #1e1e30; background: transparent; color: #444; cursor: pointer; font-size: 0.7rem; letter-spacing: 0.06em; transition: all 0.15s; }
 .chip:hover { border-color: #333348; color: #777; }
-.chip.on { border-color: #6040c0; color: #a090e8; background: rgba(96, 64, 192, 0.12); }
+.chip.on { border-color: #6040c0; color: #a090e8; background: rgba(96,64,192,0.12); }
 
-/* ── Buttons ── */
-.btn-row { display: flex; gap: 9px; }
-.btn {
-  flex: 1;
-  padding: 11px 0;
-  border-radius: 8px;
-  border: 1px solid #181828;
-  background: #0d0d1a;
-  color: #555;
-  cursor: pointer;
-  font-size: 0.78rem;
-  letter-spacing: 0.07em;
-  transition: all 0.15s;
-  text-align: center;
-}
+.btn-row { display: flex; gap: 9px; flex-wrap: wrap; }
+.btn { flex: 1; min-width: 70px; padding: 11px 4px; border-radius: 8px; border: 1px solid #181828; background: #0d0d1a; color: #555; cursor: pointer; font-size: 0.75rem; letter-spacing: 0.05em; transition: all 0.15s; text-align: center; }
 .btn:hover { border-color: #2e2e48; color: #999; }
 .btn.seed { background: #1e0e4a; border-color: #4a28a0; color: #a090e0; }
 .btn.seed:hover { background: #260e5a; border-color: #6040c0; }
 .btn.on { background: rgba(96,64,192,0.2); border-color: #6040c0; color: #b0a0f0; }
+.btn.audio-on { background: rgba(58,220,138,0.1); border-color: #3adc8a; color: #3adc8a; }
 
-/* ── History ── */
-.history-row {
-  display: flex;
-  gap: 8px;
-  align-items: center;
-}
-.history-lbl {
-  font-size: 0.65rem;
-  color: #2e2e48;
-  letter-spacing: 0.1em;
-  text-transform: uppercase;
-  min-width: 50px;
-}
-.thumb-wrap {
-  flex: 1;
-  display: flex;
-  gap: 6px;
-}
-.thumb {
-  width: 60px; height: 60px;
-  border-radius: 6px;
-  cursor: pointer;
-  border: 1px solid #1a1a2e;
-  opacity: 0.5;
-  transition: all 0.15s;
-  flex-shrink: 0;
-  background: #0d0d1a;
-  image-rendering: pixelated;
-}
+.history-row { display: flex; gap: 8px; align-items: center; }
+.history-lbl { font-size: 0.65rem; color: #2e2e48; letter-spacing: 0.1em; text-transform: uppercase; min-width: 50px; }
+.thumb-wrap { flex: 1; display: flex; gap: 6px; }
+.thumb { width: 60px; height: 60px; border-radius: 6px; cursor: pointer; border: 1px solid #1a1a2e; opacity: 0.5; transition: all 0.15s; flex-shrink: 0; background: #0d0d1a; }
 .thumb:hover { opacity: 1; border-color: #4a28a0; }
-.thumb.empty { cursor: default; opacity: 0.15; }
+.thumb.empty { cursor: default; opacity: 0.12; }
 
-/* ── Status ── */
-.status-bar {
-  font-size: 0.68rem;
-  color: #2e2e4e;
-  text-align: center;
-  letter-spacing: 0.08em;
-  text-transform: uppercase;
-  min-height: 14px;
-}
+.about { background: #0d0d1a; border: 1px solid #151525; border-radius: 8px; overflow: hidden; }
+.about-header { display: flex; justify-content: space-between; align-items: center; padding: 10px 14px; cursor: pointer; font-size: 0.72rem; color: #444; letter-spacing: 0.1em; text-transform: uppercase; }
+.about-header:hover { color: #666; }
+.about-body { padding: 0 14px 14px; font-size: 0.78rem; color: #555; line-height: 1.7; display: none; }
+.about-body.open { display: block; }
+.about-body strong { color: #7060b0; }
+
+.status-bar { font-size: 0.68rem; color: #2e2e4e; text-align: center; letter-spacing: 0.08em; text-transform: uppercase; min-height: 14px; }
 </style>
 </head>
 <body>
@@ -216,42 +87,27 @@ input[type="range"]::-moz-range-thumb {
   <p>Compositional Pattern Networks &middot; Generative AI Art</p>
 </header>
 
-<div class="canvas-wrap">
+<div class="canvas-wrap" id="canvasWrap">
   <canvas id="canvas" width="512" height="512"></canvas>
   <div class="overlay" id="overlay">Initializing neural network&hellip;</div>
 </div>
+<div class="vu-bar"><div class="vu-fill" id="vuFill"></div></div>
 
 <div class="controls">
-
   <div class="slider-row">
-    <div class="slider-label">
-      <span class="name">Dimension &alpha;</span>
-      <span class="val" id="v0">0.40</span>
-    </div>
+    <div class="slider-label"><span class="name">Dimension &alpha;</span><span class="val" id="v0">0.40</span></div>
     <input type="range" id="s0" min="-3" max="3" step="0.02" value="0.4">
   </div>
-
   <div class="slider-row">
-    <div class="slider-label">
-      <span class="name">Dimension &beta;</span>
-      <span class="val" id="v1">0.80</span>
-    </div>
+    <div class="slider-label"><span class="name">Dimension &beta;</span><span class="val" id="v1">0.80</span></div>
     <input type="range" id="s1" min="-3" max="3" step="0.02" value="0.8">
   </div>
-
   <div class="slider-row">
-    <div class="slider-label">
-      <span class="name">Dimension &gamma;</span>
-      <span class="val" id="v2">−0.60</span>
-    </div>
+    <div class="slider-label"><span class="name">Dimension &gamma;</span><span class="val" id="v2">-0.60</span></div>
     <input type="range" id="s2" min="-3" max="3" step="0.02" value="-0.6">
   </div>
-
   <div class="slider-row">
-    <div class="slider-label">
-      <span class="name">Complexity</span>
-      <span class="val" id="vs">2.00</span>
-    </div>
+    <div class="slider-label"><span class="name">Complexity</span><span class="val" id="vs">2.00</span></div>
     <input type="range" id="ss" min="0.3" max="6.0" step="0.05" value="2.0">
   </div>
 
@@ -268,9 +124,10 @@ input[type="range"]::-moz-range-thumb {
   </div>
 
   <div class="btn-row">
-    <button class="btn seed" id="bSeed">✦ New Seed</button>
-    <button class="btn" id="bAnim">▶ Evolve</button>
-    <button class="btn" id="bSave">↓ Save PNG</button>
+    <button class="btn seed" id="bSeed">&#10022; New Seed</button>
+    <button class="btn" id="bAnim">&#9654; Evolve</button>
+    <button class="btn" id="bAudio">&#127897; Audio React</button>
+    <button class="btn" id="bSave">&#8595; Save PNG</button>
   </div>
 
   <div class="history-row">
@@ -278,325 +135,221 @@ input[type="range"]::-moz-range-thumb {
     <div class="thumb-wrap" id="thumbs"></div>
   </div>
 
-  <div class="status-bar" id="status">Loading TensorFlow.js&hellip;</div>
+  <div class="about" id="aboutBox">
+    <div class="about-header" id="aboutToggle">
+      <span>How it works</span><span id="aboutArrow">›</span>
+    </div>
+    <div class="about-body" id="aboutBody">
+      <p>Neural Canvas uses a <strong>Compositional Pattern Producing Network (CPPN)</strong> — a neural network that maps every pixel's coordinates <em>(x, y, radius)</em> plus a latent vector <em>(α, β, γ)</em> to an RGB color. The network has <strong>9 hidden layers of 32 neurons</strong> each, producing smooth, organic, infinitely-detailed patterns.</p>
+      <br>
+      <p>Unlike traditional generative art using noise functions or pre-drawn assets, every pixel is <strong>computed by a unique neural network</strong>. Drag sliders to traverse latent space. Hit <em>New Seed</em> to randomize network weights. Enable <em>Audio React</em> to let your microphone drive the patterns — bass controls α, mids control β, treble controls γ.</p>
+      <br>
+      <p style="color:#383858;font-size:0.72rem;">Built with TensorFlow.js. No server, no API — runs entirely in your browser. Created for Hack the Arts 2026.</p>
+    </div>
+  </div>
 
+  <div class="status-bar" id="status">Loading TensorFlow.js&hellip;</div>
 </div>
 
 <script>
-// ── Constants ──────────────────────────────────────────────────────────────
-const W = 512, H = 512;
-const AW = 192, AH = 192;   // low-res for animation
-const LAYERS = 9, UNITS = 32;
-const MAX_HISTORY = 7;
+const W=512,H=512,AW=192,AH=192,LAYERS=9,UNITS=32,MAX_HISTORY=6;
+let model=null,palette='rgb',animating=false,animRaf=null,animT=0,busy=false,history=[];
+let audioCtx=null,analyser=null,audioData=null,audioActive=false,audioRaf=null;
 
-// ── State ──────────────────────────────────────────────────────────────────
-let model = null;
-let palette = 'rgb';
-let animating = false;
-let animRaf = null;
-let animT = 0;
-let busy = false;
-let history = []; // array of { dataUrl, weights }
+const canvas=document.getElementById('canvas');
+const ctx=canvas.getContext('2d');
+const overlay=document.getElementById('overlay');
+const statusEl=document.getElementById('status');
+const vuFill=document.getElementById('vuFill');
+const canvasWrap=document.getElementById('canvasWrap');
 
-const canvas = document.getElementById('canvas');
-const ctx = canvas.getContext('2d');
-const overlay = document.getElementById('overlay');
-const statusEl = document.getElementById('status');
-
-// ── Model ──────────────────────────────────────────────────────────────────
-function buildModel() {
-  // CPPN: maps [x, y, r, z0, z1, z2] → [R, G, B]
-  const inp = tf.input({ shape: [6] });
-  let x = inp;
-  for (let i = 0; i < LAYERS; i++) {
-    x = tf.layers.dense({
-      units: UNITS,
-      activation: 'tanh',
-      kernelInitializer: 'glorotNormal',
-      biasInitializer: 'randomNormal',
-    }).apply(x);
-  }
-  const out = tf.layers.dense({
-    units: 3,
-    activation: 'sigmoid',
-    kernelInitializer: 'glorotNormal',
-    biasInitializer: 'zeros',
-  }).apply(x);
-  return tf.model({ inputs: inp, outputs: out });
+function buildModel(){
+  const inp=tf.input({shape:[6]});
+  let x=inp;
+  for(let i=0;i<LAYERS;i++) x=tf.layers.dense({units:UNITS,activation:'tanh',kernelInitializer:'glorotNormal',biasInitializer:'randomNormal'}).apply(x);
+  const out=tf.layers.dense({units:3,activation:'sigmoid',kernelInitializer:'glorotNormal',biasInitializer:'zeros'}).apply(x);
+  return tf.model({inputs:inp,outputs:out});
 }
 
-// ── Palette transforms ─────────────────────────────────────────────────────
-function applyPalette(colors, mode) {
-  // colors: [N, 3] in [0, 1]
-  const c = (i) => colors.slice([0, i], [-1, 1]);
-  switch (mode) {
-    case 'fire': {
-      const r = c(0).mul(0.5).add(c(2).mul(0.5));
-      const g = c(0).mul(c(1)).mul(0.7);
-      const b = c(1).mul(0.08);
-      return tf.concat([r, g, b], 1).clipByValue(0, 1);
-    }
-    case 'ocean': {
-      const r = c(0).mul(0.05).add(c(1).mul(0.08));
-      const g = c(1).mul(0.35).add(c(2).mul(0.15));
-      const b = c(2).mul(0.7).add(c(0).mul(0.25));
-      return tf.concat([r, g, b], 1).clipByValue(0, 1);
-    }
-    case 'neon': {
-      const bright = colors.pow(0.3);
-      const r = bright.slice([0,0],[-1,1]).mul(1.1);
-      const g = bright.slice([0,1],[-1,1]).mul(0.6);
-      const b = bright.slice([0,2],[-1,1]).mul(1.4);
-      return tf.concat([r, g, b], 1).clipByValue(0, 1);
-    }
-    case 'void': {
-      const r = c(0).mul(c(2)).mul(0.5);
-      const g = c(1).mul(0.08);
-      const b = c(2).pow(0.6).mul(0.85);
-      return tf.concat([r, g, b], 1).clipByValue(0, 1);
-    }
-    case 'mono': {
-      const lum = c(0).mul(0.299).add(c(1).mul(0.587)).add(c(2).mul(0.114));
-      return tf.concat([lum, lum, lum], 1);
-    }
-    default:
-      return colors;
+function applyPalette(colors,mode){
+  const c=(i)=>colors.slice([0,i],[-1,1]);
+  switch(mode){
+    case 'fire':{const r=c(0).mul(0.5).add(c(2).mul(0.5));const g=c(0).mul(c(1)).mul(0.7);const b=c(1).mul(0.08);return tf.concat([r,g,b],1).clipByValue(0,1);}
+    case 'ocean':{const r=c(0).mul(0.05).add(c(1).mul(0.08));const g=c(1).mul(0.35).add(c(2).mul(0.15));const b=c(2).mul(0.7).add(c(0).mul(0.25));return tf.concat([r,g,b],1).clipByValue(0,1);}
+    case 'neon':{const bright=colors.pow(0.3);const r=bright.slice([0,0],[-1,1]).mul(1.1);const g=bright.slice([0,1],[-1,1]).mul(0.6);const b=bright.slice([0,2],[-1,1]).mul(1.4);return tf.concat([r,g,b],1).clipByValue(0,1);}
+    case 'void':{const r=c(0).mul(c(2)).mul(0.5);const g=c(1).mul(0.08);const b=c(2).pow(0.6).mul(0.85);return tf.concat([r,g,b],1).clipByValue(0,1);}
+    case 'mono':{const lum=c(0).mul(0.299).add(c(1).mul(0.587)).add(c(2).mul(0.114));return tf.concat([lum,lum,lum],1);}
+    default:return colors;
   }
 }
 
-// ── Core render ────────────────────────────────────────────────────────────
-function renderToCanvas(z0, z1, z2, scale, rw, rh, targetCtx) {
-  if (!model) return;
-  const n = rw * rh;
-  let px;
-  tf.tidy(() => {
-    const xs = tf.linspace(-1, 1, rw).tile([rh]);
-    const ys = tf.linspace(-1, 1, rh).expandDims(1).tile([1, rw]).reshape([n]);
-    const rs = tf.sqrt(xs.square().add(ys.square()));
-    const inp = tf.stack([
-      xs.mul(scale),
-      ys.mul(scale),
-      rs.mul(scale),
-      tf.fill([n], z0),
-      tf.fill([n], z1),
-      tf.fill([n], z2),
-    ], 1);
-    const raw = model.predict(inp);
-    const rgb = applyPalette(raw, palette);
-    px = rgb.mul(255).clipByValue(0, 255).cast('int32').dataSync();
+function renderFrame(z0,z1,z2,scale,rw,rh){
+  if(!model)return;
+  const n=rw*rh;let px;
+  tf.tidy(()=>{
+    const xs=tf.linspace(-1,1,rw).tile([rh]);
+    const ys=tf.linspace(-1,1,rh).expandDims(1).tile([1,rw]).reshape([n]);
+    const rs=tf.sqrt(xs.square().add(ys.square()));
+    const inp=tf.stack([xs.mul(scale),ys.mul(scale),rs.mul(scale),tf.fill([n],z0),tf.fill([n],z1),tf.fill([n],z2)],1);
+    const raw=model.predict(inp);
+    const rgb=applyPalette(raw,palette);
+    px=rgb.mul(255).clipByValue(0,255).cast('int32').dataSync();
   });
-
-  const tmp = document.createElement('canvas');
-  tmp.width = rw; tmp.height = rh;
-  const tc = tmp.getContext('2d');
-  const img = tc.createImageData(rw, rh);
-  for (let i = 0; i < n; i++) {
-    img.data[i*4]   = px[i*3];
-    img.data[i*4+1] = px[i*3+1];
-    img.data[i*4+2] = px[i*3+2];
-    img.data[i*4+3] = 255;
-  }
-  tc.putImageData(img, 0, 0);
-
-  if (targetCtx) {
-    targetCtx.imageSmoothingEnabled = rw < W;
-    targetCtx.drawImage(tmp, 0, 0, W, H);
-  }
-  return tmp;
+  const tmp=document.createElement('canvas');tmp.width=rw;tmp.height=rh;
+  const tc=tmp.getContext('2d');const img=tc.createImageData(rw,rh);
+  for(let i=0;i<n;i++){img.data[i*4]=px[i*3];img.data[i*4+1]=px[i*3+1];img.data[i*4+2]=px[i*3+2];img.data[i*4+3]=255;}
+  tc.putImageData(img,0,0);
+  ctx.imageSmoothingEnabled=rw<W;ctx.drawImage(tmp,0,0,W,H);
 }
 
-function getVals() {
-  return {
-    z0:    +document.getElementById('s0').value,
-    z1:    +document.getElementById('s1').value,
-    z2:    +document.getElementById('s2').value,
-    scale: +document.getElementById('ss').value,
-  };
+function getZ(){return{z0:+document.getElementById('s0').value,z1:+document.getElementById('s1').value,z2:+document.getElementById('s2').value,scale:+document.getElementById('ss').value};}
+
+function doRender(opts={}){
+  if(busy&&!opts.force)return;busy=true;statusEl.textContent='Rendering…';
+  setTimeout(()=>{const{z0,z1,z2,scale}=getZ();renderFrame(z0,z1,z2,scale,W,H);overlay.classList.add('hidden');statusEl.textContent='✓  Ready';busy=false;},12);
 }
 
-function doRender(opts = {}) {
-  if (busy && !opts.force) return;
-  busy = true;
-  statusEl.textContent = 'Rendering…';
-  setTimeout(() => {
-    const { z0, z1, z2, scale } = getVals();
-    renderToCanvas(z0, z1, z2, scale, W, H, ctx);
-    overlay.classList.add('hidden');
-    statusEl.textContent = '✓  Done';
-    busy = false;
-  }, 12);
-}
-
-// ── Sliders ────────────────────────────────────────────────────────────────
-const sliderMap = [
-  { s: 's0', v: 'v0' },
-  { s: 's1', v: 'v1' },
-  { s: 's2', v: 'v2' },
-  { s: 'ss', v: 'vs' },
-];
-sliderMap.forEach(({ s, v }) => {
-  const slider = document.getElementById(s);
-  const valEl  = document.getElementById(v);
-  slider.addEventListener('input', () => {
-    valEl.textContent = parseFloat(slider.value).toFixed(2);
-    if (!animating) doRender();
-  });
+[['s0','v0'],['s1','v1'],['s2','v2'],['ss','vs']].forEach(([sid,vid])=>{
+  const sl=document.getElementById(sid),vl=document.getElementById(vid);
+  sl.addEventListener('input',()=>{vl.textContent=parseFloat(sl.value).toFixed(2);if(!animating&&!audioActive)doRender();});
 });
 
-// ── Palette ────────────────────────────────────────────────────────────────
-document.querySelectorAll('.chip').forEach(chip => {
-  chip.addEventListener('click', () => {
-    document.querySelectorAll('.chip').forEach(c => c.classList.remove('on'));
-    chip.classList.add('on');
-    palette = chip.dataset.m;
-    if (!animating) doRender();
-  });
+document.querySelectorAll('.chip').forEach(chip=>{
+  chip.addEventListener('click',()=>{document.querySelectorAll('.chip').forEach(c=>c.classList.remove('on'));chip.classList.add('on');palette=chip.dataset.m;if(!animating&&!audioActive)doRender();});
 });
 
-// ── History ────────────────────────────────────────────────────────────────
-function buildThumbsUI() {
-  const wrap = document.getElementById('thumbs');
-  wrap.innerHTML = '';
-  // Show history entries (most recent first) + empty slots
-  const slots = Math.max(MAX_HISTORY, 1);
-  for (let i = 0; i < slots; i++) {
-    const entry = history[history.length - 1 - i];
-    const c = document.createElement('canvas');
-    c.width = 60; c.height = 60;
-    c.className = 'thumb' + (entry ? '' : ' empty');
-    if (entry) {
-      const img = new Image();
-      img.onload = () => c.getContext('2d').drawImage(img, 0, 0, 60, 60);
-      img.src = entry.dataUrl;
-      c.title = 'Click to restore';
-      c.addEventListener('click', () => restoreFromHistory(entry));
+function buildThumbsUI(){
+  const wrap=document.getElementById('thumbs');wrap.innerHTML='';
+  for(let i=0;i<MAX_HISTORY;i++){
+    const entry=history[history.length-1-i];
+    const c=document.createElement('canvas');c.width=60;c.height=60;
+    c.className='thumb'+(entry?'':' empty');
+    if(entry){
+      const img=new Image();img.onload=()=>c.getContext('2d').drawImage(img,0,0,60,60);img.src=entry.dataUrl;
+      c.title='Click to restore';c.addEventListener('click',()=>restoreHistory(entry));
     }
     wrap.appendChild(c);
   }
 }
 
-function saveToHistory() {
-  const dataUrl = canvas.toDataURL('image/png');
-  const weights = model.getWeights().map(w => w.dataSync().slice());
-  history.push({ dataUrl, weights, sliders: { ...getVals() }, palette });
-  if (history.length > MAX_HISTORY) history.shift();
-  buildThumbsUI();
-}
-
-function restoreFromHistory(entry) {
-  if (animating) toggleAnim();
-  // Restore model weights
-  const weightTensors = model.getWeights().map((w, i) =>
-    tf.tensor(entry.weights[i], w.shape)
-  );
-  model.setWeights(weightTensors);
-  weightTensors.forEach(t => t.dispose());
-
-  // Restore sliders
-  document.getElementById('s0').value = entry.sliders.z0;
-  document.getElementById('v0').textContent = entry.sliders.z0.toFixed(2);
-  document.getElementById('s1').value = entry.sliders.z1;
-  document.getElementById('v1').textContent = entry.sliders.z1.toFixed(2);
-  document.getElementById('s2').value = entry.sliders.z2;
-  document.getElementById('v2').textContent = entry.sliders.z2.toFixed(2);
-  document.getElementById('ss').value = entry.sliders.scale;
-  document.getElementById('vs').textContent = entry.sliders.scale.toFixed(2);
-
-  // Restore palette
-  palette = entry.palette;
-  document.querySelectorAll('.chip').forEach(c => {
-    c.classList.toggle('on', c.dataset.m === palette);
-  });
-
-  doRender({ force: true });
-}
-
-// ── New Seed ───────────────────────────────────────────────────────────────
-document.getElementById('bSeed').addEventListener('click', () => {
-  // Save current to history before replacing
-  if (overlay.classList.contains('hidden')) saveToHistory();
-
-  if (model) model.dispose();
-  model = buildModel();
-
-  // Randomize sliders
-  const rz = () => (Math.random() * 6 - 3).toFixed(2);
-  const rs = (Math.random() * 4 + 0.6).toFixed(2);
-  document.getElementById('s0').value = rz(); document.getElementById('v0').textContent = document.getElementById('s0').value;
-  document.getElementById('s1').value = rz(); document.getElementById('v1').textContent = document.getElementById('s1').value;
-  document.getElementById('s2').value = rz(); document.getElementById('v2').textContent = document.getElementById('s2').value;
-  document.getElementById('ss').value = rs;   document.getElementById('vs').textContent = parseFloat(rs).toFixed(2);
-
-  doRender({ force: true });
-});
-
-// ── Animate ────────────────────────────────────────────────────────────────
-function toggleAnim() {
-  animating = !animating;
-  const btn = document.getElementById('bAnim');
-  btn.classList.toggle('on', animating);
-  btn.textContent = animating ? '⏸ Pause' : '▶ Evolve';
-  if (animating) animLoop();
-  else cancelAnimationFrame(animRaf);
-}
-
-document.getElementById('bAnim').addEventListener('click', toggleAnim);
-
-function animLoop() {
-  if (!animating || !model) return;
-  animT += 0.018;
-  const { z0, z1, z2, scale } = getVals();
-  const az0 = z0 + Math.sin(animT * 0.73) * 1.4;
-  const az1 = z1 + Math.cos(animT * 0.51) * 0.9;
-  const az2 = z2 + Math.sin(animT * 0.39 + 1.2) * 1.1;
-  renderToCanvas(az0, az1, az2, scale, AW, AH, ctx);
-  animRaf = requestAnimationFrame(animLoop);
-}
-
-// ── Save ───────────────────────────────────────────────────────────────────
-document.getElementById('bSave').addEventListener('click', () => {
-  // If animating, pause and render full-res first
-  if (animating) {
-    toggleAnim();
-    doRender({ force: true });
-    setTimeout(doSave, 200);
-  } else {
-    doSave();
+function saveToHistory(){
+  if(!overlay.classList.contains('hidden')){
+    const dataUrl=canvas.toDataURL('image/png');
+    const weights=model.getWeights().map(w=>w.dataSync().slice());
+    history.push({dataUrl,weights,sliders:{...getZ()},palette});
+    if(history.length>MAX_HISTORY)history.shift();
+    buildThumbsUI();
   }
-});
-
-function doSave() {
-  const a = document.createElement('a');
-  a.download = `neural-canvas-${Date.now()}.png`;
-  a.href = canvas.toDataURL('image/png');
-  a.click();
 }
 
-// ── Click canvas → randomize z vals only ──────────────────────────────────
-canvas.addEventListener('click', () => {
-  if (animating) return;
-  const rz = () => (Math.random() * 6 - 3).toFixed(2);
-  document.getElementById('s0').value = rz(); document.getElementById('v0').textContent = document.getElementById('s0').value;
-  document.getElementById('s1').value = rz(); document.getElementById('v1').textContent = document.getElementById('s1').value;
-  document.getElementById('s2').value = rz(); document.getElementById('v2').textContent = document.getElementById('s2').value;
+function restoreHistory(entry){
+  if(animating)toggleAnim();if(audioActive)stopAudio();
+  const wt=model.getWeights().map((w,i)=>tf.tensor(entry.weights[i],w.shape));
+  model.setWeights(wt);wt.forEach(t=>t.dispose());
+  const{z0,z1,z2,scale}=entry.sliders;
+  document.getElementById('s0').value=z0;document.getElementById('v0').textContent=z0.toFixed(2);
+  document.getElementById('s1').value=z1;document.getElementById('v1').textContent=z1.toFixed(2);
+  document.getElementById('s2').value=z2;document.getElementById('v2').textContent=z2.toFixed(2);
+  document.getElementById('ss').value=scale;document.getElementById('vs').textContent=scale.toFixed(2);
+  palette=entry.palette;
+  document.querySelectorAll('.chip').forEach(c=>c.classList.toggle('on',c.dataset.m===palette));
+  doRender({force:true});
+}
+
+document.getElementById('bSeed').addEventListener('click',()=>{
+  saveToHistory();
+  if(model)model.dispose();model=buildModel();
+  const rz=()=>(Math.random()*6-3).toFixed(2);
+  [['s0','v0'],['s1','v1'],['s2','v2']].forEach(([s,v])=>{const val=rz();document.getElementById(s).value=val;document.getElementById(v).textContent=parseFloat(val).toFixed(2);});
+  const rs=(Math.random()*4+0.6).toFixed(2);document.getElementById('ss').value=rs;document.getElementById('vs').textContent=parseFloat(rs).toFixed(2);
+  doRender({force:true});
+});
+
+function toggleAnim(){
+  animating=!animating;const btn=document.getElementById('bAnim');
+  btn.classList.toggle('on',animating);btn.textContent=animating?'⏸ Pause':'▶ Evolve';
+  if(animating)animLoop();else cancelAnimationFrame(animRaf);
+}
+document.getElementById('bAnim').addEventListener('click',toggleAnim);
+
+function animLoop(){
+  if(!animating||!model)return;animT+=0.018;
+  const{z0,z1,z2,scale}=getZ();
+  renderFrame(z0+Math.sin(animT*0.73)*1.4,z1+Math.cos(animT*0.51)*0.9,z2+Math.sin(animT*0.39+1.2)*1.1,scale,AW,AH);
+  animRaf=requestAnimationFrame(animLoop);
+}
+
+function stopAudio(){
+  audioActive=false;cancelAnimationFrame(audioRaf);
+  if(analyser){analyser.disconnect();analyser=null;}
+  if(audioCtx){audioCtx.close();audioCtx=null;}
+  audioData=null;vuFill.style.width='0%';canvasWrap.classList.remove('audio-active');
+  const btn=document.getElementById('bAudio');btn.classList.remove('audio-on');btn.textContent='🎙 Audio React';
+  statusEl.textContent='Audio off';
+}
+
+async function toggleAudio(){
+  if(audioActive){stopAudio();return;}
+  try{
+    statusEl.textContent='Requesting mic…';
+    const stream=await navigator.mediaDevices.getUserMedia({audio:true,video:false});
+    audioCtx=new(window.AudioContext||window.webkitAudioContext)();
+    analyser=audioCtx.createAnalyser();analyser.fftSize=256;analyser.smoothingTimeConstant=0.7;
+    audioData=new Uint8Array(analyser.frequencyBinCount);
+    audioCtx.createMediaStreamSource(stream).connect(analyser);
+    audioActive=true;canvasWrap.classList.add('audio-active');
+    const btn=document.getElementById('bAudio');btn.classList.add('audio-on');btn.textContent='🔴 Stop Audio';
+    statusEl.textContent='🎙 Listening…';
+    if(animating)toggleAnim();
+    audioLoop();
+  }catch(e){statusEl.textContent='Mic access denied';console.error(e);}
+}
+document.getElementById('bAudio').addEventListener('click',toggleAudio);
+
+function getAudioLevels(){
+  if(!analyser||!audioData)return{bass:0,mid:0,treble:0,volume:0};
+  analyser.getByteFrequencyData(audioData);
+  const n=audioData.length;let bass=0,mid=0,treble=0;
+  for(let i=0;i<n;i++){const v=audioData[i]/255;if(i<n*0.10)bass+=v;else if(i<n*0.50)mid+=v;else treble+=v;}
+  bass/=(n*0.10);mid/=(n*0.40);treble/=(n*0.50);
+  return{bass,mid,treble,volume:(bass+mid+treble)/3};
+}
+
+function audioLoop(){
+  if(!audioActive||!model)return;
+  const{bass,mid,treble,volume}=getAudioLevels();
+  vuFill.style.width=Math.min(100,volume*150)+'%';
+  const base=getZ();
+  renderFrame(base.z0+(bass-0.3)*3.0,base.z1+(mid-0.3)*2.0,base.z2+(treble-0.3)*1.5,base.scale,AW,AH);
+  audioRaf=requestAnimationFrame(audioLoop);
+}
+
+document.getElementById('bSave').addEventListener('click',()=>{
+  const wasAnim=animating,wasAudio=audioActive;
+  if(animating)toggleAnim();if(audioActive)stopAudio();
+  setTimeout(()=>{
+    const{z0,z1,z2,scale}=getZ();renderFrame(z0,z1,z2,scale,W,H);
+    setTimeout(()=>{const a=document.createElement('a');a.download='neural-canvas-'+Date.now()+'.png';a.href=canvas.toDataURL('image/png');a.click();statusEl.textContent='↓ Saved';},100);
+  },50);
+});
+
+canvas.addEventListener('click',()=>{
+  if(animating||audioActive)return;
+  const rz=()=>(Math.random()*6-3).toFixed(2);
+  [['s0','v0'],['s1','v1'],['s2','v2']].forEach(([s,v])=>{const val=rz();document.getElementById(s).value=val;document.getElementById(v).textContent=parseFloat(val).toFixed(2);});
   doRender();
 });
 
-// ── Init ───────────────────────────────────────────────────────────────────
-async function init() {
-  statusEl.textContent = 'Building CPPN…';
-  try {
-    await tf.ready();
-    model = buildModel();
-    buildThumbsUI();
-    statusEl.textContent = 'First render…';
-    doRender({ force: true });
-  } catch (e) {
-    statusEl.textContent = 'Error: ' + e.message;
-    console.error(e);
-  }
-}
+document.getElementById('aboutToggle').addEventListener('click',()=>{
+  const body=document.getElementById('aboutBody'),arrow=document.getElementById('aboutArrow');
+  body.classList.toggle('open');arrow.textContent=body.classList.contains('open')?'↓':'›';
+});
 
+async function init(){
+  statusEl.textContent='Building CPPN…';
+  try{await tf.ready();model=buildModel();buildThumbsUI();statusEl.textContent='First render…';doRender({force:true});}
+  catch(e){statusEl.textContent='Error: '+e.message;console.error(e);}
+}
 init();
 </script>
 </body>
