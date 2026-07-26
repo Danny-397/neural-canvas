@@ -15,18 +15,23 @@ no server, no API.
 
 ## What makes it art you evolve, not just generate
 
-- **🧬 Breed** — cross the weights of any two artworks in your history into a new
-  offspring (weight crossover + mutation). Human-guided neuro-evolution in the lineage of
+- **🧬 Breed** — pick any two artworks from your history and open a **generation grid** of
+  offspring (weight crossover + mutation). Click the one you like and it breeds a new
+  generation from there — over and over. Human-guided neuro-evolution in the lineage of
   Picbreeder and NEAT. *Your taste is the fitness function.*
 - **⚛ Mutate** — perturb the current network's weights to explore nearby variations.
+- **✦ Name Art** — type any word and it's hashed into a seed, so your name always makes the
+  same piece. Algorithmic authorship: the network turns language into a picture.
 - **♾ Infinite zoom & pan** — because the image is a continuous *function* of coordinates,
-  you can zoom in forever and new detail keeps emerging. There is no underlying resolution.
+  you can zoom in forever and new detail keeps emerging. There is no underlying resolution —
+  so **Export HD** renders it at any size (2048×2048 and beyond).
 - **🔷 Symmetry** — fold the coordinate field into mirror and kaleidoscope patterns.
 - **🎙 Audio React** — your microphone drives the latent vector (bass → α, mids → β,
   treble → γ).
 - **⏺ Record** — export the living animation as a video.
-- **🔗 Share** — the exact artwork is encoded into a reproducible seed in the URL; anyone
-  who opens the link sees the same piece.
+- **🔗 Share** — the exact artwork is encoded into a reproducible seed in the URL, with a
+  scannable **QR code**; anyone who opens the link sees the same piece.
+- **🖼 Gallery** — a set of curated showpieces to start from.
 
 ## How the network works
 

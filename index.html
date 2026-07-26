@@ -5,6 +5,7 @@
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>Neural Canvas — Evolve a Neural Network into Art</title>
 <script src="https://cdn.jsdelivr.net/npm/@tensorflow/tfjs@4.10.0/dist/tf.min.js"></script>
+<script src="qrcode.min.js"></script>
 <style>
 * { box-sizing: border-box; margin: 0; padding: 0; }
 body {
@@ -89,6 +90,29 @@ input[type="range"]::-moz-range-thumb { width: 14px; height: 14px; border-radius
 .about-body em { color: #6a8fb0; font-style: normal; }
 
 .status-bar { font-size: 0.68rem; color: #2e2e4e; text-align: center; letter-spacing: 0.08em; text-transform: uppercase; min-height: 14px; }
+
+/* name input + preset gallery */
+.io-row { display: flex; align-items: center; gap: 7px; flex-wrap: wrap; }
+.io-row .lbl { font-size: 0.65rem; color: #383858; letter-spacing: 0.12em; text-transform: uppercase; min-width: 62px; }
+input[type="text"].name-input { flex: 1; min-width: 130px; background: #0d0d1a; border: 1px solid #1e1e30; border-radius: 8px; color: #a090e8; padding: 9px 12px; font-size: 0.8rem; outline: none; }
+input[type="text"].name-input:focus { border-color: #4a28a0; }
+.btn.compact { flex: 0 0 auto; min-width: 0; padding: 9px 14px; }
+.chip.preset { color: #6a6a9a; }
+.chip.preset:hover { border-color: #4a28a0; color: #b0a0f0; }
+
+/* modal (breed grid + share) */
+.modal { position: fixed; inset: 0; background: rgba(4,4,10,0.82); display: none; align-items: center; justify-content: center; z-index: 50; padding: 16px; }
+.modal.open { display: flex; }
+.modal-card { background: #0b0b16; border: 1px solid #23233a; border-radius: 12px; padding: 18px; max-width: 460px; width: 100%; max-height: 92vh; overflow: auto; }
+.modal-title { font-size: 0.74rem; letter-spacing: 0.09em; text-transform: uppercase; color: #9080e0; text-align: center; margin-bottom: 14px; }
+.breed-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 8px; }
+.breed-tile { width: 100%; aspect-ratio: 1 / 1; border-radius: 8px; border: 2px solid #1a1a2e; cursor: pointer; transition: all 0.12s; display: block; }
+.breed-tile:hover { border-color: #6040c0; }
+.breed-tile.sel { border-color: #3adc8a; box-shadow: 0 0 12px rgba(58,220,138,0.6); }
+.modal-btns { display: flex; gap: 9px; margin-top: 14px; }
+.qr-wrap { display: flex; justify-content: center; background: #fff; padding: 12px; border-radius: 8px; margin: 0 auto 12px; width: fit-content; }
+.qr-wrap img { display: block; image-rendering: pixelated; }
+.share-link { width: 100%; background: #0d0d1a; border: 1px solid #1e1e30; border-radius: 8px; color: #8080b0; padding: 8px 10px; font-size: 0.72rem; }
 </style>
 </head>
 <body>
@@ -125,6 +149,17 @@ input[type="range"]::-moz-range-thumb { width: 14px; height: 14px; border-radius
 
   <div class="hr"></div>
 
+  <div class="io-row">
+    <span class="lbl">Gallery</span>
+    <div id="gallery" style="display:flex;gap:7px;flex-wrap:wrap;flex:1;"></div>
+  </div>
+
+  <div class="io-row">
+    <span class="lbl">Name Art</span>
+    <input type="text" class="name-input" id="nameInput" maxlength="40" placeholder="Type a word — get its artwork…">
+    <button class="btn evo compact" id="bName">&#10022; Generate</button>
+  </div>
+
   <div class="palette-row">
     <span class="lbl">Palette</span>
     <button class="chip pal on" data-m="rgb">Natural</button>
@@ -153,6 +188,7 @@ input[type="range"]::-moz-range-thumb { width: 14px; height: 14px; border-radius
     <button class="btn" id="bAudio">&#127897; Audio React</button>
     <button class="btn" id="bRec">&#9210; Record</button>
     <button class="btn" id="bSave">&#8595; Save PNG</button>
+    <button class="btn" id="bExport">&#11036; Export HD</button>
     <button class="btn" id="bShare">&#128279; Share</button>
   </div>
 
@@ -168,9 +204,9 @@ input[type="range"]::-moz-range-thumb { width: 14px; height: 14px; border-radius
     <div class="about-body" id="aboutBody">
       <p>Every image here <strong>is</strong> a neural network. A <strong>Compositional Pattern Producing Network (CPPN)</strong> maps each pixel's coordinates <em>(x, y, radius)</em> plus a latent vector <em>(α, β, γ)</em> to an RGB color. It uses <strong>sinusoidal and Gaussian activations</strong> (the SIREN idea) instead of plain tanh — periodic activations are what give the network its crisp, intricate structure. There is no image file until the network computes one, pixel by pixel. Nothing is drawn, sampled, or pulled from a dataset. <strong>This art cannot exist without the network.</strong></p>
       <br>
-      <p>It's not just generated — it's <strong>evolved</strong>. Every artwork has a reproducible <em>seed</em>. <strong>Mutate</strong> perturbs the network's weights to explore nearby variations. <strong>Breed</strong> crosses the weights of two artworks in your history into a new offspring — human-guided neuro-evolution, the same idea behind Picbreeder and NEAT. Your taste is the fitness function.</p>
+      <p>It's not just generated — it's <strong>evolved</strong>. Every artwork has a reproducible <em>seed</em>, and you can even turn any word into art (<strong>Name Art</strong> hashes it into a seed, so your name always makes the same piece). <strong>Mutate</strong> perturbs the weights to explore nearby variations. <strong>Breed</strong> crosses two artworks and opens a <em>generation grid</em> — click the offspring you like and it breeds a new generation from there, over and over. Human-guided neuro-evolution, the same idea behind Picbreeder and NEAT. Your taste is the fitness function.</p>
       <br>
-      <p>Because the image is a continuous <em>function</em> of coordinates, you can <strong>zoom in forever</strong> and new detail keeps emerging — there is no underlying resolution. <strong>Symmetry</strong> folds the coordinate field into kaleidoscopes. <strong>Audio React</strong> lets your microphone drive the latent vector (bass→α, mids→β, treble→γ). <strong>Record</strong> exports the living animation as video, and <strong>Share</strong> encodes the exact seed into a link anyone can reopen.</p>
+      <p>Because the image is a continuous <em>function</em> of coordinates, you can <strong>zoom in forever</strong> and new detail keeps emerging — there is no underlying resolution, so <strong>Export HD</strong> can render it at any size. <strong>Symmetry</strong> folds the coordinate field into kaleidoscopes. <strong>Audio React</strong> lets your microphone drive the latent vector (bass→α, mids→β, treble→γ). <strong>Record</strong> exports the living animation as video, and <strong>Share</strong> encodes the exact seed into a link anyone can reopen.</p>
       <br>
       <p style="color:#383858;font-size:0.72rem;">Built with TensorFlow.js. No server, no API — the network runs entirely in your browser. Created for Hack the Arts 2026.</p>
     </div>
@@ -178,6 +214,8 @@ input[type="range"]::-moz-range-thumb { width: 14px; height: 14px; border-radius
 
   <div class="status-bar" id="status">Loading TensorFlow.js&hellip;</div>
 </div>
+
+<div class="modal" id="modal"><div class="modal-card" id="modalCard"></div></div>
 
 <script>
 const W=512,H=512,AW=192,AH=192,LAYERS=3,UNITS=24,MAX_HISTORY=6;
@@ -189,6 +227,18 @@ let view={cx:0,cy:0,zoom:1},currentSeed=null;
 let breedMode=false,breedSelection=[];
 let mediaRecorder=null,recChunks=[],recording=false,recTimeout=null,recAutoAnim=false;
 let wheelT=null;
+let gridGenomes=[],gridSelIndex=-1,gridSliders=null,gridPalette='rgb',originalGenome=null,modalOnCancel=null;
+const GRID_N=9;
+
+// ── Curated presets (seeds picked to look great with the SIREN model) ─────────
+const PRESETS=[
+  {name:'Aurora',  seed:42424, z:[0.4,0.8,-0.6,12], pal:'rgb',   sym:'none'},
+  {name:'Abyss',   seed:314,   z:[0.4,0.8,-0.6,12], pal:'ocean', sym:'none'},
+  {name:'Orchid',  seed:12321, z:[0.4,0.8,-0.6,12], pal:'neon',  sym:'none'},
+  {name:'Ember',   seed:88888, z:[0.4,0.8,-0.6,12], pal:'fire',  sym:'none'},
+  {name:'Meadow',  seed:8888,  z:[0.4,0.8,-0.6,12], pal:'rgb',   sym:'none'},
+  {name:'Mandala', seed:777,   z:[0.4,0.8,-0.6,14], pal:'void',  sym:'kal6'},
+];
 
 const canvas=document.getElementById('canvas');
 const ctx=canvas.getContext('2d');
@@ -234,16 +284,17 @@ function buildModel(seed){
   return tf.model({inputs:inp,outputs:out});
 }
 
+// Seeded PRNG + string hash → fully reproducible art from a seed or a word.
+function mulberry32(a){return function(){a|=0;a=a+0x6D2B79F5|0;let t=Math.imul(a^a>>>15,1|a);t=t+Math.imul(t^t>>>7,61|t)^t;return((t^t>>>14)>>>0)/4294967296;};}
+function hashStr(s){let h=2166136261>>>0;for(let i=0;i<s.length;i++){h^=s.charCodeAt(i);h=Math.imul(h,16777619);}return h>>>0;}
+function seedSliders(seed){const r=mulberry32((seed^0x9e3779b9)>>>0);
+  setSlider('s0','v0',r()*6-3);setSlider('s1','v1',r()*6-3);setSlider('s2','v2',r()*6-3);setSlider('ss','vs',r()*18+6);}
+
 function applySeed(seed,rand){
   currentSeed=seed>>>0;
   if(model)model.dispose();
   model=buildModel(currentSeed);
-  if(rand){
-    setSlider('s0','v0',Math.random()*6-3);
-    setSlider('s1','v1',Math.random()*6-3);
-    setSlider('s2','v2',Math.random()*6-3);
-    setSlider('ss','vs',Math.random()*18+5);
-  }
+  if(rand)seedSliders(currentSeed);
 }
 
 // ── Palettes ─────────────────────────────────────────────────────────────────
@@ -274,8 +325,9 @@ function foldCoords(xs,ys,mode){
 }
 
 // ── Core render (respects view + symmetry) ───────────────────────────────────
-function renderFrame(z0,z1,z2,scale,rw,rh){
-  if(!model)return;
+// Renders the network into a fresh rw×rh canvas — the same function powers the
+// live view, the breed-grid thumbnails, and infinite-resolution HD export.
+function computePixels(z0,z1,z2,scale,rw,rh){
   const n=rw*rh;let px;
   tf.tidy(()=>{
     const half=1/view.zoom;
@@ -292,6 +344,11 @@ function renderFrame(z0,z1,z2,scale,rw,rh){
   const tc=tmp.getContext('2d');const img=tc.createImageData(rw,rh);
   for(let i=0;i<n;i++){img.data[i*4]=px[i*3];img.data[i*4+1]=px[i*3+1];img.data[i*4+2]=px[i*3+2];img.data[i*4+3]=255;}
   tc.putImageData(img,0,0);
+  return tmp;
+}
+function renderFrame(z0,z1,z2,scale,rw,rh){
+  if(!model)return;
+  const tmp=computePixels(z0,z1,z2,scale,rw,rh);
   ctx.imageSmoothingEnabled=rw<W;ctx.drawImage(tmp,0,0,W,H);
 }
 
@@ -397,29 +454,70 @@ function toggleBreedSelect(entry,el){
   if(idx>=0){breedSelection.splice(idx,1);el.classList.remove('sel');}
   else{ if(breedSelection.length>=2)return; breedSelection.push(entry);el.classList.add('sel'); }
   statusEl.textContent='🧬 Breed: pick 2 parents ('+breedSelection.length+'/2)';
-  if(breedSelection.length===2)doBreed();
+  if(breedSelection.length===2)startBreedGrid(breedSelection[0],breedSelection[1]);
 }
-function doBreed(){
-  const[a,b]=breedSelection;
-  saveToHistory();
-  const cur=model.getWeights();
-  const wt=cur.map((w,i)=>{
-    const av=a.weights[i],bv=b.weights[i],len=av.length,out=new Float32Array(len);
-    for(let k=0;k<len;k++)out[k]=(Math.random()<0.5?av[k]:bv[k])+(Math.random()*2-1)*BREED_RATE;
-    return tf.tensor(out,w.shape);
-  });
-  model.setWeights(wt);wt.forEach(t=>t.dispose());
-  currentSeed=null;
-  setSlider('s0','v0',(a.sliders.z0+b.sliders.z0)/2);
-  setSlider('s1','v1',(a.sliders.z1+b.sliders.z1)/2);
-  setSlider('s2','v2',(a.sliders.z2+b.sliders.z2)/2);
-  setSlider('ss','vs',(a.sliders.scale+b.sliders.scale)/2);
-  setPalette(a.palette);
-  view={cx:0,cy:0,zoom:1};
+
+// ── Genome = flat copy of the network's weights (for crossover / mutation) ────
+function currentGenome(){return model.getWeights().map(w=>w.dataSync().slice());}
+function setGenome(g){const wt=model.getWeights().map((w,i)=>tf.tensor(g[i],w.shape));model.setWeights(wt);wt.forEach(t=>t.dispose());}
+function crossGenome(a,b,rate){const out=[];for(let i=0;i<a.length;i++){const av=a[i],bv=b[i],len=av.length,o=new Float32Array(len);for(let k=0;k<len;k++)o[k]=(Math.random()<0.5?av[k]:bv[k])+(Math.random()*2-1)*rate;out.push(o);}return out;}
+function mutateGenome(g,rate){const out=[];for(let i=0;i<g.length;i++){const gv=g[i],len=gv.length,o=new Float32Array(len);for(let k=0;k<len;k++)o[k]=gv[k]+(Math.random()*2-1)*rate;out.push(o);}return out;}
+
+// ── Breed as a generation grid (interactive evolution, Picbreeder-style) ──────
+function startBreedGrid(a,b){
   exitBreedMode();
-  doRender({force:true});
-  statusEl.textContent='🧬 Bred new offspring';
+  if(animating)toggleAnim();if(audioActive)stopAudio();
+  originalGenome=currentGenome();
+  saveToHistory();               // preserve whatever was on the canvas
+  gridSliders={z0:(a.sliders.z0+b.sliders.z0)/2,z1:(a.sliders.z1+b.sliders.z1)/2,z2:(a.sliders.z2+b.sliders.z2)/2,scale:(a.sliders.scale+b.sliders.scale)/2};
+  gridPalette=a.palette;
+  gridSelIndex=-1;
+  gridGenomes=[];
+  for(let i=0;i<GRID_N;i++)gridGenomes.push(crossGenome(a.weights,b.weights,BREED_RATE*(1+i*0.18)));
+  showGrid('Pick an offspring — click one to breed from it');
 }
+function renderGenomeTile(cv,genome){
+  setGenome(genome);
+  const sv=view,sp=palette,ss=symmetry;
+  view={cx:0,cy:0,zoom:1};palette=gridPalette;symmetry='none';
+  const tmp=computePixels(gridSliders.z0,gridSliders.z1,gridSliders.z2,gridSliders.scale,120,120);
+  view=sv;palette=sp;symmetry=ss;
+  cv.width=120;cv.height=120;cv.getContext('2d').drawImage(tmp,0,0);
+}
+function showGrid(msg){
+  const card=document.getElementById('modalCard');card.innerHTML='';
+  const h=document.createElement('div');h.className='modal-title';h.textContent='🧬 '+msg;card.appendChild(h);
+  const grid=document.createElement('div');grid.className='breed-grid';
+  gridGenomes.forEach((g,i)=>{
+    const cv=document.createElement('canvas');cv.className='breed-tile'+(i===gridSelIndex?' sel':'');
+    renderGenomeTile(cv,g);cv.title='Click to breed from this one';
+    cv.addEventListener('click',()=>{
+      gridSelIndex=i;const base=gridGenomes[i];
+      gridGenomes=gridGenomes.map((gg,j)=>j===i?gg:mutateGenome(base,MUT_RATE));
+      showGrid('Bred from #'+(i+1)+' — pick again, or Use it');
+    });
+    grid.appendChild(cv);
+  });
+  card.appendChild(grid);
+  const row=document.createElement('div');row.className='modal-btns';
+  const use=document.createElement('button');use.className='btn evo';use.textContent='✓ Use selected';use.addEventListener('click',commitBreed);
+  const regen=document.createElement('button');regen.className='btn';regen.textContent='↻ Shuffle';
+  regen.addEventListener('click',()=>{const base=gridSelIndex>=0?gridGenomes[gridSelIndex]:gridGenomes[0];gridGenomes=gridGenomes.map(()=>mutateGenome(base,MUT_RATE*1.5));gridSelIndex=-1;showGrid('New generation — click one');});
+  const cancel=document.createElement('button');cancel.className='btn';cancel.textContent='✕ Cancel';cancel.addEventListener('click',cancelBreed);
+  row.appendChild(use);row.appendChild(regen);row.appendChild(cancel);card.appendChild(row);
+  modalOnCancel=cancelBreed;
+  document.getElementById('modal').classList.add('open');
+}
+function commitBreed(){
+  const g=gridGenomes[gridSelIndex>=0?gridSelIndex:0];
+  setGenome(g);currentSeed=null;
+  setSlider('s0','v0',gridSliders.z0);setSlider('s1','v1',gridSliders.z1);setSlider('s2','v2',gridSliders.z2);setSlider('ss','vs',gridSliders.scale);
+  setPalette(gridPalette);setSymmetry('none');view={cx:0,cy:0,zoom:1};
+  closeModal();doRender({force:true});statusEl.textContent='🧬 Offspring selected';
+}
+function cancelBreed(){ if(originalGenome)setGenome(originalGenome); closeModal(); doRender({force:true}); statusEl.textContent='Breed cancelled'; }
+function closeModal(){modalOnCancel=null;document.getElementById('modal').classList.remove('open');}
+document.getElementById('modal').addEventListener('click',e=>{if(e.target.id==='modal'){if(modalOnCancel)modalOnCancel();else closeModal();}});
 
 // ── Evolve (animate latent vector) ───────────────────────────────────────────
 function toggleAnim(){
@@ -522,12 +620,24 @@ document.getElementById('bSave').addEventListener('click',()=>{
   },50);
 });
 
-// ── Share (encode reproducible state into URL) ───────────────────────────────
-document.getElementById('bShare').addEventListener('click',()=>{
-  if(currentSeed==null){
-    statusEl.textContent='Mutated/bred art has no seed — use Save PNG to keep it';
-    return;
-  }
+// ── Export HD (infinite resolution — it's a function, not pixels) ─────────────
+document.getElementById('bExport').addEventListener('click',()=>exportHD(2048));
+function exportHD(size){
+  if(!model)return;
+  if(animating)toggleAnim();if(audioActive)stopAudio();
+  statusEl.textContent='Rendering '+size+'×'+size+'…';
+  setTimeout(()=>{
+    try{
+      const{z0,z1,z2,scale}=getZ();
+      const tmp=computePixels(z0,z1,z2,scale,size,size);
+      const a=document.createElement('a');a.download='neural-canvas-'+size+'-'+Date.now()+'.png';a.href=tmp.toDataURL('image/png');a.click();
+      statusEl.textContent='⬇ Exported '+size+'×'+size;
+    }catch(e){statusEl.textContent='Export failed: '+e.message;console.error(e);}
+  },30);
+}
+
+// ── Share (encode reproducible state into URL + QR code) ──────────────────────
+function buildShareURL(){
   const p=new URLSearchParams();
   p.set('seed',currentSeed);
   const{z0,z1,z2,scale}=getZ();
@@ -535,13 +645,59 @@ document.getElementById('bShare').addEventListener('click',()=>{
   p.set('pal',palette);
   if(symmetry!=='none')p.set('sym',symmetry);
   if(view.zoom!==1||view.cx!==0||view.cy!==0)p.set('v',[view.cx.toFixed(4),view.cy.toFixed(4),view.zoom.toFixed(4)].join(','));
-  const q=p.toString();
-  const url=location.origin+location.pathname+'#'+q;
-  location.hash=q;
-  if(navigator.clipboard&&navigator.clipboard.writeText){
-    navigator.clipboard.writeText(url).then(()=>{statusEl.textContent='🔗 Link copied to clipboard';}).catch(()=>{statusEl.textContent='🔗 Link in address bar';});
-  }else{statusEl.textContent='🔗 Link in address bar';}
+  return location.origin+location.pathname+'#'+p.toString();
+}
+document.getElementById('bShare').addEventListener('click',()=>{
+  if(currentSeed==null){statusEl.textContent='Mutated/bred art has no seed — use Save PNG or Export HD';return;}
+  const url=buildShareURL();
+  location.hash=url.split('#')[1];
+  const card=document.getElementById('modalCard');card.innerHTML='';
+  const h=document.createElement('div');h.className='modal-title';h.textContent='🔗 Share this artwork';card.appendChild(h);
+  const qwrap=document.createElement('div');qwrap.className='qr-wrap';
+  try{const qr=qrcode(0,'M');qr.addData(url);qr.make();qwrap.innerHTML=qr.createImgTag(5,8);}
+  catch(e){qwrap.textContent='(QR unavailable)';}
+  card.appendChild(qwrap);
+  const link=document.createElement('input');link.className='share-link';link.value=url;link.readOnly=true;
+  link.addEventListener('focus',()=>link.select());card.appendChild(link);
+  const row=document.createElement('div');row.className='modal-btns';
+  const copy=document.createElement('button');copy.className='btn evo';copy.textContent='📋 Copy link';
+  copy.addEventListener('click',()=>{link.select();if(navigator.clipboard&&navigator.clipboard.writeText)navigator.clipboard.writeText(url);copy.textContent='✓ Copied';});
+  const close=document.createElement('button');close.className='btn';close.textContent='✕ Close';close.addEventListener('click',closeModal);
+  row.appendChild(copy);row.appendChild(close);card.appendChild(row);
+  modalOnCancel=closeModal;
+  document.getElementById('modal').classList.add('open');
+  statusEl.textContent='🔗 Scan the QR or copy the link';
 });
+
+// ── Name → art (deterministic: same word always makes the same piece) ─────────
+function nameArt(){
+  const word=(document.getElementById('nameInput').value||'').trim();
+  if(!word){statusEl.textContent='Type a word first';return;}
+  if(animating)toggleAnim();if(audioActive)stopAudio();
+  saveToHistory();
+  view={cx:0,cy:0,zoom:1};
+  applySeed(hashStr(word),true);
+  doRender({force:true});
+  statusEl.textContent='✦ Art for “'+word+'”';
+}
+document.getElementById('bName').addEventListener('click',nameArt);
+document.getElementById('nameInput').addEventListener('keydown',e=>{if(e.key==='Enter')nameArt();});
+
+// ── Preset gallery ────────────────────────────────────────────────────────────
+function loadPreset(p){
+  if(animating)toggleAnim();if(audioActive)stopAudio();
+  saveToHistory();
+  view={cx:0,cy:0,zoom:1};
+  applySeed(p.seed,false);
+  setSlider('s0','v0',p.z[0]);setSlider('s1','v1',p.z[1]);setSlider('s2','v2',p.z[2]);setSlider('ss','vs',p.z[3]);
+  setPalette(p.pal);setSymmetry(p.sym||'none');
+  doRender({force:true});
+  statusEl.textContent='✦ '+p.name;
+}
+function buildGallery(){
+  const g=document.getElementById('gallery');g.innerHTML='';
+  PRESETS.forEach(p=>{const b=document.createElement('button');b.className='chip preset';b.textContent=p.name;b.addEventListener('click',()=>loadPreset(p));g.appendChild(b);});
+}
 
 function loadFromHash(){
   if(!location.hash||location.hash.length<2)return false;
@@ -606,6 +762,7 @@ async function init(){
   statusEl.textContent='Building CPPN…';
   try{
     await tf.ready();
+    buildGallery();
     if(!loadFromHash())applySeed(DEFAULT_SEED,false);
     buildThumbsUI();
     statusEl.textContent='First render…';
