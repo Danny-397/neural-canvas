@@ -3,947 +3,515 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Neural Canvas — Evolve a Neural Network into Art</title>
-<meta name="description" content="Every image IS a neural network. Neural Canvas lets you evolve, breed, and share generative art from a CPPN — running entirely in your browser.">
-<link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><rect width='100' height='100' rx='22' fill='%23120a2e'/><circle cx='50' cy='50' r='27' fill='none' stroke='%238860f0' stroke-width='7'/><circle cx='50' cy='50' r='8' fill='%23b8a8ff'/></svg>">
-<meta property="og:title" content="Neural Canvas — Evolve a Neural Network into Art">
-<meta property="og:description" content="Every image IS a neural network (a CPPN). Evolve, breed, zoom into infinite detail, and share generative art — 100% in your browser.">
+<title>Neural Canvas — Paint With Your Hands</title>
+<meta name="description" content="Paint glowing light in mid-air with your bare hands. A neural network tracks your motion through your webcam — no brush, no mouse, no touchscreen. Built for Hack the Arts 2026.">
+<meta name="author" content="Danny Lichtenberger">
+<meta name="theme-color" content="#8860f0">
+<link rel="canonical" href="https://danny-397.github.io/neural-canvas/">
+<!-- Open Graph / social sharing -->
 <meta property="og:type" content="website">
+<meta property="og:title" content="Neural Canvas — Paint With Your Hands">
+<meta property="og:description" content="Paint glowing light in mid-air with your bare hands. A neural network watches your motion through the webcam — no brush, no mouse, no touchscreen.">
 <meta property="og:url" content="https://danny-397.github.io/neural-canvas/">
 <meta property="og:image" content="https://danny-397.github.io/neural-canvas/preview.png">
 <meta name="twitter:card" content="summary_large_image">
-<meta name="twitter:title" content="Neural Canvas — Evolve a Neural Network into Art">
-<meta name="twitter:description" content="Every image IS a neural network. Evolve, breed, and share generative art in your browser.">
+<meta name="twitter:title" content="Neural Canvas — Paint With Your Hands">
+<meta name="twitter:description" content="Paint glowing light in mid-air with your bare hands. A neural network watches your motion through the webcam.">
 <meta name="twitter:image" content="https://danny-397.github.io/neural-canvas/preview.png">
-<script src="https://cdn.jsdelivr.net/npm/@tensorflow/tfjs@4.10.0/dist/tf.min.js" onerror="window.__tfFailed=true"></script>
-<script src="qrcode.min.js"></script>
+<link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><rect width='100' height='100' rx='22' fill='%23120a2e'/><circle cx='50' cy='50' r='27' fill='none' stroke='%238860f0' stroke-width='7'/><circle cx='50' cy='50' r='8' fill='%23b8a8ff'/></svg>">
 <style>
 * { box-sizing: border-box; margin: 0; padding: 0; }
-body {
-  background: #07070f; color: #e0e0f0;
-  font-family: -apple-system, 'Inter', system-ui, sans-serif;
-  min-height: 100vh; display: flex; flex-direction: column;
-  align-items: center; padding: 28px 16px 48px; gap: 18px;
-}
-header { text-align: center; }
-header h1 { font-size: 1.5rem; font-weight: 200; letter-spacing: 0.4em; text-transform: uppercase; color: #b8a8ff; }
-header p { font-size: 0.72rem; color: #55557a; margin-top: 5px; letter-spacing: 0.15em; text-transform: uppercase; }
+body { background:radial-gradient(circle at 50% -10%, #0e0a24 0%, #05050c 55%); color:#e0e0f0; font-family:-apple-system,'Inter',system-ui,sans-serif; min-height:100vh; display:flex; flex-direction:column; align-items:center; padding:26px 14px 20px; gap:16px; }
+header { text-align:center; display:flex; flex-direction:column; align-items:center; gap:9px; }
+header .badge { font-size:0.58rem; letter-spacing:0.22em; text-transform:uppercase; color:#8a7ad0; border:1px solid #2a2350; background:rgba(60,40,140,0.12); padding:4px 12px; border-radius:20px; }
+header h1 { font-size:1.7rem; font-weight:200; letter-spacing:0.42em; text-transform:uppercase; background:linear-gradient(90deg,#c9bbff,#8860f0); -webkit-background-clip:text; background-clip:text; -webkit-text-fill-color:transparent; padding-left:0.42em; }
+header p { font-size:0.72rem; color:#6a6a92; letter-spacing:0.16em; text-transform:uppercase; }
 
-.canvas-wrap { position: relative; }
-#canvas {
-  display: block; border-radius: 10px;
-  box-shadow: 0 0 80px rgba(100,60,255,0.18), 0 0 20px rgba(0,0,0,0.6);
-  width: 512px; height: 512px;
-  max-width: calc(100vw - 32px); max-height: calc(100vw - 32px);
-  cursor: grab; touch-action: none;
-}
-#canvas:active { cursor: grabbing; }
-.canvas-wrap.audio-active #canvas {
-  box-shadow: 0 0 80px rgba(100,60,255,0.18), 0 0 20px rgba(0,0,0,0.6), 0 0 0 2px rgba(96,220,160,0.7);
-}
-.canvas-wrap.recording #canvas {
-  box-shadow: 0 0 80px rgba(255,60,60,0.22), 0 0 20px rgba(0,0,0,0.6), 0 0 0 2px rgba(240,70,70,0.85);
-}
-.overlay {
-  position: absolute; inset: 0; display: flex; align-items: center;
-  justify-content: center; border-radius: 10px;
-  background: rgba(7,7,15,0.85); font-size: 0.82rem; color: #555;
-  letter-spacing: 0.1em; transition: opacity 0.4s; pointer-events: none;
-}
-.overlay.hidden { opacity: 0; }
+.stage { position:relative; width:960px; max-width:calc(100vw - 28px); aspect-ratio:4/3; border-radius:12px; overflow:hidden; background:#0a0a14; box-shadow:0 0 80px rgba(100,60,255,0.16),0 0 20px rgba(0,0,0,0.6); }
+.stage video, .stage canvas { position:absolute; inset:0; width:100%; height:100%; }
+#cam { object-fit:cover; transform:scaleX(-1); filter:brightness(0.42) saturate(0.7); }
+#paint { z-index:2; }
+#fx { z-index:3; pointer-events:none; }
+#hud { z-index:4; pointer-events:none; }
+.overlay { position:absolute; inset:0; z-index:5; display:flex; flex-direction:column; align-items:center; justify-content:center; gap:14px; text-align:center; background:rgba(5,5,12,0.9); padding:24px; transition:opacity 0.4s; }
+.overlay.hidden { opacity:0; pointer-events:none; }
+.overlay h2 { font-weight:300; letter-spacing:0.12em; color:#b8a8ff; font-size:1.1rem; }
+.overlay p { font-size:0.85rem; color:#8080a8; max-width:470px; line-height:1.6; }
+.overlay .err { color:#ff8080; }
+.big-btn { padding:13px 26px; border-radius:10px; border:1px solid #4a28a0; background:#1e0e4a; color:#b8a8ff; cursor:pointer; font-size:0.9rem; letter-spacing:0.06em; transition:all 0.15s; }
+.big-btn:hover { background:#2a1060; border-color:#6040c0; }
 
-.hint { font-size: 0.62rem; color: #33334e; letter-spacing: 0.1em; text-transform: uppercase; text-align: center; }
-.vu-bar { width: 512px; max-width: calc(100vw - 32px); height: 3px; background: #0d0d1a; border-radius: 2px; overflow: hidden; }
-.vu-fill { height: 100%; width: 0%; background: linear-gradient(to right, #3adc8a, #7c5aed); border-radius: 2px; transition: width 0.05s; }
+.controls { width:960px; max-width:calc(100vw - 28px); display:flex; flex-direction:column; gap:11px; }
+.row { display:flex; gap:8px; align-items:center; flex-wrap:wrap; }
+.row .lbl { font-size:0.62rem; color:#45456a; letter-spacing:0.12em; text-transform:uppercase; min-width:58px; }
+.swatch { width:28px; height:28px; border-radius:50%; border:2px solid transparent; cursor:pointer; transition:all 0.12s; }
+.swatch:hover { transform:scale(1.12); }
+.swatch.on { border-color:#fff; box-shadow:0 0 12px currentColor; }
+.chip { padding:5px 13px; border-radius:20px; border:1px solid #1e1e30; background:transparent; color:#55557a; cursor:pointer; font-size:0.72rem; letter-spacing:0.05em; transition:all 0.15s; }
+.chip:hover { border-color:#333348; color:#888; }
+.chip.on { border-color:#6040c0; color:#a090e8; background:rgba(96,64,192,0.14); }
+.chip.rainbow.on { border-color:#e0aaff; color:#fff; background:linear-gradient(90deg,#ff2d75,#ffe600,#3ddc84,#00e5ff,#b14dff); }
+.btn { flex:1; min-width:88px; padding:11px 6px; border-radius:9px; border:1px solid #181828; background:#0d0d1a; color:#6a6a90; cursor:pointer; font-size:0.78rem; letter-spacing:0.05em; transition:all 0.15s; text-align:center; }
+.btn:hover { border-color:#2e2e48; color:#b0b0d0; }
+.btn.rec-on { background:rgba(240,70,70,0.12); border-color:#f04646; color:#ff8080; }
+.btn.audio-on { background:rgba(58,220,138,0.12); border-color:#3adc8a; color:#3adc8a; }
+.status { font-size:0.68rem; color:#38385a; text-align:center; letter-spacing:0.06em; min-height:15px; }
+.slider-row { display:flex; align-items:center; gap:10px; }
+.slider-row .lbl { min-width:58px; font-size:0.62rem; color:#45456a; letter-spacing:0.12em; text-transform:uppercase; }
+input[type=range] { -webkit-appearance:none; appearance:none; flex:1; height:2px; background:linear-gradient(to right,#2a1a5e,#5a3aad); border-radius:2px; outline:none; }
+input[type=range]::-webkit-slider-thumb { -webkit-appearance:none; width:14px; height:14px; border-radius:50%; background:#8860f0; cursor:pointer; box-shadow:0 0 10px rgba(136,96,240,0.7); }
 
-.controls { width: 100%; max-width: 512px; display: flex; flex-direction: column; gap: 14px; }
-.slider-row { display: flex; flex-direction: column; gap: 7px; }
-.slider-label { display: flex; justify-content: space-between; font-size: 0.7rem; letter-spacing: 0.08em; text-transform: uppercase; }
-.slider-label .name { color: #555; }
-.slider-label .val { color: #9080e0; font-variant-numeric: tabular-nums; }
-input[type="range"] { -webkit-appearance: none; appearance: none; width: 100%; height: 2px; background: linear-gradient(to right, #2a1a5e, #5a3aad); border-radius: 2px; outline: none; }
-input[type="range"]::-webkit-slider-thumb { -webkit-appearance: none; width: 14px; height: 14px; border-radius: 50%; background: #8860f0; cursor: pointer; box-shadow: 0 0 10px rgba(136,96,240,0.7); }
-input[type="range"]::-moz-range-thumb { width: 14px; height: 14px; border-radius: 50%; background: #8860f0; cursor: pointer; border: none; }
+/* gesture key */
+.key { display:flex; gap:14px; flex-wrap:wrap; align-items:center; background:#0b0b16; border:1px solid #1b1b2c; border-radius:10px; padding:10px 14px; }
+.key .lbl { font-size:0.62rem; color:#6a6a9a; letter-spacing:0.12em; text-transform:uppercase; min-width:58px; }
+.key .g { font-size:0.78rem; color:#9a9ac0; display:flex; align-items:center; gap:6px; }
+.key .g b { color:#b8a8ff; font-weight:600; }
+.key.body-mode .hands-only { display:none; }
 
-.hr { height: 1px; background: #151525; }
-.palette-row { display: flex; align-items: center; gap: 7px; flex-wrap: wrap; }
-.palette-row .lbl { font-size: 0.65rem; color: #383858; letter-spacing: 0.12em; text-transform: uppercase; min-width: 62px; }
-.chip { padding: 4px 12px; border-radius: 20px; border: 1px solid #1e1e30; background: transparent; color: #444; cursor: pointer; font-size: 0.7rem; letter-spacing: 0.06em; transition: all 0.15s; }
-.chip:hover { border-color: #333348; color: #777; }
-.chip.on { border-color: #6040c0; color: #a090e8; background: rgba(96,64,192,0.12); }
+.about { background:#0d0d1a; border:1px solid #151525; border-radius:8px; overflow:hidden; }
+.about-header { display:flex; justify-content:space-between; align-items:center; padding:10px 14px; cursor:pointer; font-size:0.72rem; color:#55557a; letter-spacing:0.1em; text-transform:uppercase; }
+.about-header:hover { color:#888; }
+.about-body { padding:0 14px 14px; font-size:0.8rem; color:#6a6a90; line-height:1.7; display:none; }
+.about-body.open { display:block; }
+.about-body strong { color:#8878c0; }
+.about-body em { color:#6a8fb0; font-style:normal; }
 
-.btn-row { display: flex; gap: 9px; flex-wrap: wrap; }
-.btn { flex: 1; min-width: 70px; padding: 11px 4px; border-radius: 8px; border: 1px solid #181828; background: #0d0d1a; color: #555; cursor: pointer; font-size: 0.75rem; letter-spacing: 0.05em; transition: all 0.15s; text-align: center; }
-.btn:hover { border-color: #2e2e48; color: #999; }
-.btn.seed { background: #1e0e4a; border-color: #4a28a0; color: #a090e0; }
-.btn.seed:hover { background: #260e5a; border-color: #6040c0; }
-.btn.evo { background: #0e1e12; border-color: #1e5a38; color: #6ad0a0; }
-.btn.evo:hover { background: #103018; border-color: #2a8050; }
-.btn.on { background: rgba(96,64,192,0.2); border-color: #6040c0; color: #b0a0f0; }
-.btn.audio-on { background: rgba(58,220,138,0.1); border-color: #3adc8a; color: #3adc8a; }
-.btn.rec-on { background: rgba(240,70,70,0.12); border-color: #f04646; color: #ff8080; }
-.btn.breed-on { background: rgba(58,220,138,0.16); border-color: #3adc8a; color: #8af0c0; }
-
-.history-row { display: flex; gap: 8px; align-items: center; }
-.history-lbl { font-size: 0.65rem; color: #2e2e48; letter-spacing: 0.1em; text-transform: uppercase; min-width: 50px; }
-.thumb-wrap { flex: 1; display: flex; gap: 6px; }
-.thumb { width: 60px; height: 60px; border-radius: 6px; cursor: pointer; border: 1px solid #1a1a2e; opacity: 0.5; transition: all 0.15s; flex-shrink: 0; background: #0d0d1a; }
-.thumb:hover { opacity: 1; border-color: #4a28a0; }
-.thumb.empty { cursor: default; opacity: 0.12; }
-.thumb.sel { opacity: 1; border-color: #3adc8a; box-shadow: 0 0 10px rgba(58,220,138,0.6); }
-
-.about { background: #0d0d1a; border: 1px solid #151525; border-radius: 8px; overflow: hidden; }
-.about-header { display: flex; justify-content: space-between; align-items: center; padding: 10px 14px; cursor: pointer; font-size: 0.72rem; color: #444; letter-spacing: 0.1em; text-transform: uppercase; }
-.about-header:hover { color: #666; }
-.about-body { padding: 0 14px 14px; font-size: 0.78rem; color: #555; line-height: 1.7; display: none; }
-.about-body.open { display: block; }
-.about-body strong { color: #7060b0; }
-.about-body em { color: #6a8fb0; font-style: normal; }
-
-.status-bar { font-size: 0.68rem; color: #2e2e4e; text-align: center; letter-spacing: 0.08em; text-transform: uppercase; min-height: 14px; }
-
-/* name input + preset gallery */
-.io-row { display: flex; align-items: center; gap: 7px; flex-wrap: wrap; }
-.io-row .lbl { font-size: 0.65rem; color: #383858; letter-spacing: 0.12em; text-transform: uppercase; min-width: 62px; }
-input[type="text"].name-input { flex: 1; min-width: 130px; background: #0d0d1a; border: 1px solid #1e1e30; border-radius: 8px; color: #a090e8; padding: 9px 12px; font-size: 0.8rem; outline: none; }
-input[type="text"].name-input:focus { border-color: #4a28a0; }
-.btn.compact { flex: 0 0 auto; min-width: 0; padding: 9px 14px; }
-.chip.preset { color: #6a6a9a; }
-.chip.preset:hover { border-color: #4a28a0; color: #b0a0f0; }
-
-/* modal (breed grid + share) */
-.modal { position: fixed; inset: 0; background: rgba(4,4,10,0.82); display: none; align-items: center; justify-content: center; z-index: 50; padding: 16px; }
-.modal.open { display: flex; }
-.modal-card { background: #0b0b16; border: 1px solid #23233a; border-radius: 12px; padding: 18px; max-width: 460px; width: 100%; max-height: 92vh; overflow: auto; }
-.modal-title { font-size: 0.74rem; letter-spacing: 0.09em; text-transform: uppercase; color: #9080e0; text-align: center; margin-bottom: 14px; }
-.breed-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 8px; }
-.breed-tile { width: 100%; aspect-ratio: 1 / 1; border-radius: 8px; border: 2px solid #1a1a2e; cursor: pointer; transition: all 0.12s; display: block; }
-.breed-tile:hover { border-color: #6040c0; }
-.breed-tile.sel { border-color: #3adc8a; box-shadow: 0 0 12px rgba(58,220,138,0.6); }
-.modal-btns { display: flex; gap: 9px; margin-top: 14px; }
-.qr-wrap { display: flex; justify-content: center; background: #fff; padding: 12px; border-radius: 8px; margin: 0 auto 12px; width: fit-content; }
-.qr-wrap img { display: block; image-rendering: pixelated; }
-.share-link { width: 100%; background: #0d0d1a; border: 1px solid #1e1e30; border-radius: 8px; color: #8080b0; padding: 8px 10px; font-size: 0.72rem; }
-
-/* onboarding tip */
-.toast { position: fixed; left: 50%; bottom: 20px; transform: translateX(-50%); background: #140f2e; border: 1px solid #4a28a0; color: #c8bcff; padding: 12px 16px; border-radius: 10px; font-size: 0.8rem; max-width: 440px; width: calc(100% - 32px); display: none; z-index: 60; box-shadow: 0 8px 40px rgba(0,0,0,0.65); line-height: 1.55; }
-.toast.show { display: flex; gap: 12px; align-items: flex-start; }
-.toast strong { color: #b8a8ff; }
-.toast .x { margin-left: auto; cursor: pointer; color: #6a6a9a; flex-shrink: 0; }
-.toast .x:hover { color: #fff; }
+footer { width:960px; max-width:calc(100vw - 28px); display:flex; justify-content:space-between; align-items:center; flex-wrap:wrap; gap:8px; margin-top:6px; padding-top:14px; border-top:1px solid #14141f; font-size:0.68rem; color:#3d3d5c; letter-spacing:0.06em; }
+footer a { color:#6a6a92; text-decoration:none; transition:color 0.15s; }
+footer a:hover { color:#a090e8; }
 </style>
 </head>
 <body>
 
 <header>
+  <span class="badge">Hack the Arts 2026</span>
   <h1>Neural Canvas</h1>
-  <p>Evolve a Neural Network into Art</p>
+  <p>Paint With Your Hands &middot; Real-Time AI Motion Art</p>
 </header>
 
-<div class="canvas-wrap" id="canvasWrap">
-  <canvas id="canvas" width="512" height="512"></canvas>
-  <div class="overlay" id="overlay">Initializing neural network&hellip;</div>
+<div class="stage" id="stage">
+  <video id="cam" autoplay playsinline muted></video>
+  <canvas id="paint"></canvas>
+  <canvas id="fx"></canvas>
+  <canvas id="hud"></canvas>
+  <div class="overlay" id="overlay">
+    <h2 id="ovTitle">Paint with your hands</h2>
+    <p id="ovText">Allow camera access, then <strong>pinch your thumb &amp; index finger</strong> together to paint. Use gestures to clear, erase, and change color — see the key below. Works with both hands.</p>
+    <button class="big-btn" id="startBtn">✋ Start camera</button>
+  </div>
 </div>
-<div class="hint">Scroll to zoom &middot; Drag to pan &middot; Double-click to reset view</div>
-<div class="vu-bar"><div class="vu-fill" id="vuFill"></div></div>
 
 <div class="controls">
-  <div class="slider-row">
-    <div class="slider-label"><span class="name">Dimension &alpha;</span><span class="val" id="v0">0.40</span></div>
-    <input type="range" id="s0" min="-3" max="3" step="0.02" value="0.4">
-  </div>
-  <div class="slider-row">
-    <div class="slider-label"><span class="name">Dimension &beta;</span><span class="val" id="v1">0.80</span></div>
-    <input type="range" id="s1" min="-3" max="3" step="0.02" value="0.8">
-  </div>
-  <div class="slider-row">
-    <div class="slider-label"><span class="name">Dimension &gamma;</span><span class="val" id="v2">-0.60</span></div>
-    <input type="range" id="s2" min="-3" max="3" step="0.02" value="-0.6">
-  </div>
-  <div class="slider-row">
-    <div class="slider-label"><span class="name">Complexity</span><span class="val" id="vs">18.00</span></div>
-    <input type="range" id="ss" min="1.5" max="34" step="0.1" value="18">
+  <div class="key" id="key">
+    <span class="lbl">Gestures</span>
+    <span class="g">🤏 <b>Pinch</b> Paint</span>
+    <span class="g hands-only">✊ <b>Fist</b> Clear (hold)</span>
+    <span class="g hands-only">✋ <b>Open palm</b> Erase</span>
+    <span class="g hands-only">✌️ <b>Victory</b> Next color</span>
+    <span class="g hands-only">👎 <b>Thumb down</b> Undo</span>
+    <span class="g hands-only">👍 <b>Thumb up</b> View (clean)</span>
+    <span class="g body-only" style="display:none">🙆 <b>Raise a hand above your shoulder</b> to paint</span>
   </div>
 
-  <div class="hr"></div>
+  <div class="row" id="palette"><span class="lbl">Color</span></div>
 
-  <div class="io-row">
-    <span class="lbl">Gallery</span>
-    <div id="gallery" style="display:flex;gap:7px;flex-wrap:wrap;flex:1;"></div>
+  <div class="row">
+    <span class="lbl">Brush</span>
+    <button class="chip brush on" data-b="neon">Neon glow</button>
+    <button class="chip brush" data-b="ribbon">Ribbon</button>
+    <button class="chip brush" data-b="spray">Spray</button>
+    <button class="chip brush" data-b="comet">Comet</button>
+    <button class="chip brush" data-b="embers">Embers</button>
   </div>
 
-  <div class="io-row">
-    <span class="lbl">Name Art</span>
-    <input type="text" class="name-input" id="nameInput" maxlength="40" placeholder="Type a word — get its artwork…">
-    <button class="btn evo compact" id="bName">&#10022; Generate</button>
-  </div>
-
-  <div class="palette-row">
-    <span class="lbl">Palette</span>
-    <button class="chip pal on" data-m="rgb">Natural</button>
-    <button class="chip pal" data-m="fire">Fire</button>
-    <button class="chip pal" data-m="ocean">Ocean</button>
-    <button class="chip pal" data-m="neon">Neon</button>
-    <button class="chip pal" data-m="void">Void</button>
-    <button class="chip pal" data-m="mono">Mono</button>
-  </div>
-
-  <div class="palette-row">
+  <div class="row">
     <span class="lbl">Symmetry</span>
-    <button class="chip sym on" data-s="none">None</button>
+    <button class="chip sym on" data-s="off">Off</button>
     <button class="chip sym" data-s="mirror">Mirror</button>
-    <button class="chip sym" data-s="kal6">Kaleido 6</button>
-    <button class="chip sym" data-s="kal8">Kaleido 8</button>
+    <button class="chip sym" data-s="4">4-fold</button>
+    <button class="chip sym" data-s="6">6-fold</button>
+    <button class="chip sym" data-s="8">8-fold</button>
   </div>
 
-  <div class="btn-row">
-    <button class="btn seed" id="bSeed">&#10022; New Seed</button>
-    <button class="btn evo" id="bMutate">&#9883; Mutate</button>
-    <button class="btn evo" id="bBreed">&#129516; Breed</button>
-    <button class="btn evo" id="bMorph">&#127744; Morph</button>
-    <button class="btn" id="bAnim">&#9654; Evolve</button>
-  </div>
-  <div class="btn-row">
-    <button class="btn" id="bAudio">&#127897; Audio React</button>
-    <button class="btn" id="bRec">&#9210; Record</button>
-    <button class="btn" id="bSave">&#8595; Save PNG</button>
-    <button class="btn" id="bExport">&#11036; Export HD</button>
-    <button class="btn" id="bShare">&#128279; Share</button>
+  <div class="row">
+    <span class="lbl">Backdrop</span>
+    <button class="chip bg on" data-bg="space">Space</button>
+    <button class="chip bg" data-bg="ink">Ink</button>
+    <button class="chip bg" data-bg="slate">Slate</button>
+    <button class="chip bg" data-bg="black">Black</button>
+    <button class="chip bg" data-bg="white">White</button>
   </div>
 
-  <div class="history-row">
-    <span class="history-lbl">History</span>
-    <div class="thumb-wrap" id="thumbs"></div>
+  <div class="slider-row">
+    <span class="lbl">Size</span>
+    <input type="range" id="sizeSlider" min="2" max="40" step="1" value="14">
+    <span class="lbl" style="min-width:34px;color:#9080e0;text-align:right" id="sizeVal">14</span>
+  </div>
+
+  <div class="row">
+    <span class="lbl">Input</span>
+    <button class="chip mode on" data-m="hands">✋ Hands</button>
+    <button class="chip mode" data-m="body">🕺 Body</button>
+    <button class="chip" id="depthToggle">Depth size: off</button>
+    <button class="chip" id="audioToggle">🎙 Audio glow: off</button>
+  </div>
+
+  <div class="row">
+    <button class="chip" id="mirrorToggle">Mirror: on</button>
+    <button class="chip" id="fadeToggle">Fade trails: off</button>
+    <button class="chip" id="skelToggle">Show tracking: on</button>
+    <button class="chip" id="camToggle">Camera: visible</button>
+    <button class="chip" id="viewToggle">👁 View</button>
+    <button class="chip" id="twoHandToggle">🙌 2-hand colors: off</button>
+    <button class="chip" id="bloomToggle">🌌 Bloom: off</button>
+    <button class="chip" id="fsToggle">⛶ Fullscreen</button>
+  </div>
+
+  <div class="row">
+    <button class="btn" id="undoBtn">↶ Undo</button>
+    <button class="btn" id="clearBtn">🗑 Clear</button>
+    <button class="btn" id="saveBtn">↓ Save PNG</button>
+    <button class="btn" id="recBtn">⏺ Record</button>
+    <button class="btn" id="stopCamBtn" style="display:none">⏹ Stop camera</button>
   </div>
 
   <div class="about" id="aboutBox">
-    <div class="about-header" id="aboutToggle">
-      <span>How it works</span><span id="aboutArrow">›</span>
-    </div>
+    <div class="about-header" id="aboutToggle"><span>How it works</span><span id="aboutArrow">›</span></div>
     <div class="about-body" id="aboutBody">
-      <p>Every image here <strong>is</strong> a neural network. A <strong>Compositional Pattern Producing Network (CPPN)</strong> maps each pixel's coordinates <em>(x, y, radius)</em> plus a latent vector <em>(α, β, γ)</em> to an RGB color. It uses <strong>sinusoidal and Gaussian activations</strong> (the SIREN idea) instead of plain tanh — periodic activations are what give the network its crisp, intricate structure. There is no image file until the network computes one, pixel by pixel. Nothing is drawn, sampled, or pulled from a dataset. <strong>This art cannot exist without the network.</strong></p>
-      <br>
-      <p>It's not just generated — it's <strong>evolved</strong>. Every artwork has a reproducible <em>seed</em>, and you can even turn any word into art (<strong>Name Art</strong> renders your typed letters filled with the network's texture, seeded by the word — so your name always makes the same piece). <strong>Mutate</strong> perturbs the weights to explore nearby variations. <strong>Breed</strong> crosses two artworks and opens a <em>generation grid</em> — click the offspring you like and it breeds a new generation from there, over and over. Human-guided neuro-evolution, the same idea behind Picbreeder and NEAT. Your taste is the fitness function.</p>
-      <br>
-      <p>Because the image is a continuous <em>function</em> of coordinates, you can <strong>zoom in forever</strong> and new detail keeps emerging — there is no underlying resolution, so <strong>Export HD</strong> can render it at any size. <strong>Symmetry</strong> folds the coordinate field into kaleidoscopes. <strong>Audio React</strong> lets your microphone drive the latent vector (bass→α, mids→β, treble→γ). <strong>Morph</strong> smoothly interpolates the network's weights between two artworks — a hypnotic transition you can <strong>Record</strong> as video, alongside the evolving latent animation. <strong>Share</strong> encodes the exact seed into a link (with a scannable QR code) anyone can reopen.</p>
-      <br>
-      <p style="color:#383858;font-size:0.72rem;">Built with TensorFlow.js. No server, no API — the network runs entirely in your browser. Created for Hack the Arts 2026.</p>
+      <p>A trained neural network <strong>watches your hands</strong>, not the art. Each webcam frame is fed to Google's <strong>MediaPipe</strong> gesture &amp; hand model, which locates <em>21 3D points per hand</em> in real time — entirely in your browser, no server.</p><br>
+      <p>The app reads those points: your <em>index fingertip</em> is the brush, and a <em>pinch</em> (thumb + index together) is the pen. Gestures like ✊ fist and ✋ open palm are classified by the model to clear and erase. A one-euro filter smooths the tracking so lines are clean. <strong>Symmetry</strong> mirrors every stroke into a live kaleidoscope, and <strong>Body</strong> mode swaps in a full-body pose model so you paint with your whole body.</p><br>
+      <p style="color:#45456a;font-size:0.74rem;">The machine doesn't make the art — <strong>you</strong> do. But it couldn't exist without it: there's no way to paint in mid-air unless a neural network perceives your motion ~60&times; a second. Built for Hack the Arts 2026.</p>
     </div>
   </div>
 
-  <div class="status-bar" id="status">Loading TensorFlow.js&hellip;</div>
+  <div class="status" id="status">Load the model to begin…</div>
 </div>
 
-<div class="modal" id="modal"><div class="modal-card" id="modalCard"></div></div>
+<footer>
+  <span>Neural Canvas · painting from mid-air motion</span>
+  <span>Runs 100% in your browser · no data leaves your device · <a href="https://github.com/Danny-397/neural-canvas" target="_blank" rel="noopener">View source ↗</a></span>
+</footer>
 
-<div class="toast" id="tip">
-  <span>👋 <strong>Tip:</strong> Scroll (or pinch) to zoom into infinite detail, hit <strong>🧬 Breed</strong> to evolve two artworks together, or type your name under <strong>Name Art</strong>.</span>
-  <span class="x" id="tipClose">✕</span>
-</div>
+<script type="module">
+import { GestureRecognizer, PoseLandmarker, FilesetResolver } from "https://cdn.jsdelivr.net/npm/@mediapipe/tasks-vision@0.10.14";
+const VER="0.10.14";
+const WASM=`https://cdn.jsdelivr.net/npm/@mediapipe/tasks-vision@${VER}/wasm`;
+const GESTURE_URL='https://storage.googleapis.com/mediapipe-models/gesture_recognizer/gesture_recognizer/float16/1/gesture_recognizer.task';
+const POSE_URL='https://storage.googleapis.com/mediapipe-models/pose_landmarker/pose_landmarker_lite/float16/1/pose_landmarker_lite.task';
 
-<script>
-(function(){
-if(window.__tfFailed||typeof tf==='undefined'||!tf.layers){
-  var o=document.getElementById('overlay');if(o){o.textContent='Couldn’t load TensorFlow.js — check your connection and refresh.';o.style.color='#ff8080';}
-  var s=document.getElementById('status');if(s)s.textContent='Load failed — offline?';
-  return;
-}
-const W=512,H=512,AW=192,AH=192,LAYERS=3,UNITS=24,MAX_HISTORY=6;
-const KINDS=['sin','gauss','sin'];   // per-layer activation mix (SIREN-style)
-const MUT_RATE=0.12, BREED_RATE=0.05, REC_SECONDS=6, DEFAULT_SEED=2468, CONTRAST=1.4;
-let model=null,palette='rgb',symmetry='none',animating=false,animRaf=null,animT=0,busy=false,history=[];
-let audioCtx=null,analyser=null,audioData=null,audioActive=false,audioRaf=null;
-let view={cx:0,cy:0,zoom:1},currentSeed=null,textWord='';
-let breedMode=false,breedSelection=[];
-let morphMode=false,morphSelection=[],morphActive=false,morphRaf=null,morphT=0,morphA=null,morphB=null,morphAS=null,morphBS=null;
-let mediaRecorder=null,recChunks=[],recording=false,recTimeout=null,recAutoAnim=false;
-let wheelT=null;
-let gridGenomes=[],gridSelIndex=-1,gridSliders=null,gridPalette='rgb',originalGenome=null,modalOnCancel=null;
-const GRID_N=9;
+const cam=document.getElementById('cam'), paint=document.getElementById('paint'), fx=document.getElementById('fx'), hud=document.getElementById('hud');
+const pctx=paint.getContext('2d'), fctx=fx.getContext('2d'), hctx=hud.getContext('2d');
+const overlay=document.getElementById('overlay'), ovTitle=document.getElementById('ovTitle'), ovText=document.getElementById('ovText'), statusEl=document.getElementById('status');
 
-// ── Curated presets (seeds picked to look great with the SIREN model) ─────────
-const PRESETS=[
-  {name:'Sol',     seed:31415,  z:[0.4,0.8,-0.6,26], pal:'fire',  sym:'kal8'},
-  {name:'Bloom',   seed:271828, z:[0.4,0.8,-0.6,26], pal:'neon',  sym:'kal6'},
-  {name:'Amethyst',seed:777,    z:[0.4,0.8,-0.6,28], pal:'void',  sym:'kal6'},
-  {name:'Tide',    seed:90210,  z:[0.4,0.8,-0.6,26], pal:'ocean', sym:'kal6'},
-  {name:'Ember',   seed:88888,  z:[0.4,0.8,-0.6,20], pal:'fire',  sym:'none'},
-  {name:'Viridis', seed:12321,  z:[0.4,0.8,-0.6,20], pal:'neon',  sym:'none'},
-];
+const COLORS=['#ff2d75','#ff9e00','#ffe600','#3ddc84','#00e5ff','#4d7bff','#b14dff','#ffffff'];
+let colorIdx=4, rainbow=false, hue=200;
+let brush='neon', size=14, symmetry='off', mode='hands';
+let mirror=true, fade=false, showSkel=true, showCam=true, useDepth=false, viewMode=false;
+let twoHand=false, bloom=false, bg='space';
 
-const canvas=document.getElementById('canvas');
-const ctx=canvas.getContext('2d');
-const overlay=document.getElementById('overlay');
-const statusEl=document.getElementById('status');
-const vuFill=document.getElementById('vuFill');
-const canvasWrap=document.getElementById('canvasWrap');
+let fileset=null, gestureModel=null, poseModel=null;
+let running=false, lastVideoTime=-1, stream=null;
+const pens={}, gstate={}; let lastClear=0;
+const undoStack=[]; let particles=[];
+let attract=false, attractT=0, attractPen={}, savedAttract=null, lastSeenTime=0;
 
-// ── Custom activation layer (sin / gaussian) ─────────────────────────────────
-// Periodic + radial activations are what give CPPNs crisp, intricate structure.
-// A deep all-tanh stack collapses to a flat mean; a shallow sinusoidal net does not.
-class Act extends tf.layers.Layer{
-  constructor(cfg){super(cfg||{});this.kind=(cfg&&cfg.kind)||'sin';}
-  call(inputs){return tf.tidy(()=>{
-    const x=Array.isArray(inputs)?inputs[0]:inputs;
-    if(this.kind==='sin')return tf.sin(x);
-    if(this.kind==='gauss')return tf.exp(tf.neg(tf.square(x)));
-    return tf.tanh(x);
-  });}
-  computeOutputShape(s){return s;}
-  getConfig(){const c=super.getConfig();c.kind=this.kind;return c;}
-  static get className(){return 'Act';}
-}
-tf.serialization.registerClass(Act);
+const BGS={space:'radial-gradient(circle at 50% 38%, #131a44 0%, #06060f 68%)', ink:'#0a0a18', slate:'#161628', black:'#05050c', white:'#eef0f8'};
+function applyBg(){document.getElementById('stage').style.background=BGS[bg];}
+function paintBg(ctx,w,h){ if(bg==='space'){const g=ctx.createRadialGradient(w*0.5,h*0.38,0,w*0.5,h*0.38,Math.max(w,h)*0.75);g.addColorStop(0,'#131a44');g.addColorStop(1,'#06060f');ctx.fillStyle=g;} else ctx.fillStyle=BGS[bg]; ctx.fillRect(0,0,w,h); }
+applyBg();
+let audioCtx=null, analyser=null, audioData=null, audioActive=false, audioStream=null, audioLevel=0;
+let recorder=null, recChunks=[], recording=false, recTimeout=null;
 
-// ── Model (seeded → reproducible) ────────────────────────────────────────────
-function buildModel(seed){
-  const inp=tf.input({shape:[6]});
-  let x=inp;
-  for(let i=0;i<LAYERS;i++){
-    x=tf.layers.dense({
-      units:UNITS,activation:'linear',
-      kernelInitializer:tf.initializers.glorotNormal({seed:seed+i*17+1}),
-      biasInitializer:tf.initializers.randomNormal({mean:0,stddev:0.8,seed:seed+i*17+9})
-    }).apply(x);
-    x=new Act({kind:KINDS[i%KINDS.length]}).apply(x);
-  }
-  const out=tf.layers.dense({
-    units:3,activation:'sigmoid',
-    kernelInitializer:tf.initializers.glorotNormal({seed:seed+9973}),
-    biasInitializer:'zeros'
-  }).apply(x);
-  return tf.model({inputs:inp,outputs:out});
+// ── One-euro smoothing filter (kills hand-tracking jitter) ────────────────────
+class OneEuro{
+  constructor(minCut=1.6, beta=0.012, dCut=1.0){this.mc=minCut;this.beta=beta;this.dc=dCut;this.xP=null;this.dxP=0;this.tP=null;}
+  a(cut,dt){const tau=1/(2*Math.PI*cut);return 1/(1+tau/dt);}
+  f(x,t){ if(this.xP===null){this.xP=x;this.tP=t;return x;} const dt=Math.max(1e-3,(t-this.tP)/1000);
+    const dx=(x-this.xP)/dt, aD=this.a(this.dc,dt), dxH=aD*dx+(1-aD)*this.dxP;
+    const cut=this.mc+this.beta*Math.abs(dxH), a=this.a(cut,dt), xH=a*x+(1-a)*this.xP;
+    this.xP=xH;this.dxP=dxH;this.tP=t;return xH; }
 }
 
-// Seeded PRNG + string hash → fully reproducible art from a seed or a word.
-function mulberry32(a){return function(){a|=0;a=a+0x6D2B79F5|0;let t=Math.imul(a^a>>>15,1|a);t=t+Math.imul(t^t>>>7,61|t)^t;return((t^t>>>14)>>>0)/4294967296;};}
-function hashStr(s){let h=2166136261>>>0;for(let i=0;i<s.length;i++){h^=s.charCodeAt(i);h=Math.imul(h,16777619);}return h>>>0;}
-function seedSliders(seed){const r=mulberry32((seed^0x9e3779b9)>>>0);
-  setSlider('s0','v0',r()*6-3);setSlider('s1','v1',r()*6-3);setSlider('s2','v2',r()*6-3);setSlider('ss','vs',r()*12+14);}
+// ── Palette UI (+ rainbow) ────────────────────────────────────────────────────
+const pal=document.getElementById('palette');
+COLORS.forEach((c,i)=>{const s=document.createElement('div');s.className='swatch'+(i===colorIdx?' on':'');s.style.background=c;s.style.color=c;
+  s.addEventListener('click',()=>{colorIdx=i;rainbow=false;refreshColorUI();});pal.appendChild(s);});
+const rbChip=document.createElement('button');rbChip.className='chip rainbow';rbChip.textContent='🌈 Rainbow';
+rbChip.addEventListener('click',()=>{rainbow=!rainbow;refreshColorUI();});pal.appendChild(rbChip);
+function refreshColorUI(){document.querySelectorAll('.swatch').forEach((e,i)=>e.classList.toggle('on',!rainbow&&i===colorIdx));rbChip.classList.toggle('on',rainbow);}
+function curColor(){return rainbow?`hsl(${hue|0},100%,62%)`:COLORS[colorIdx];}
+function nextColor(){rainbow=false;colorIdx=(colorIdx+1)%COLORS.length;refreshColorUI();statusEl.textContent='🎨 '+COLORS[colorIdx];}
 
-function applySeed(seed,rand){
-  currentSeed=seed>>>0;
-  if(model)model.dispose();
-  model=buildModel(currentSeed);
-  if(rand)seedSliders(currentSeed);
-}
+document.querySelectorAll('.chip.brush').forEach(ch=>ch.addEventListener('click',()=>{document.querySelectorAll('.chip.brush').forEach(e=>e.classList.remove('on'));ch.classList.add('on');brush=ch.dataset.b;}));
+document.querySelectorAll('.chip.sym').forEach(ch=>ch.addEventListener('click',()=>{document.querySelectorAll('.chip.sym').forEach(e=>e.classList.remove('on'));ch.classList.add('on');symmetry=ch.dataset.s;}));
+document.querySelectorAll('.chip.bg').forEach(ch=>ch.addEventListener('click',()=>{document.querySelectorAll('.chip.bg').forEach(e=>e.classList.remove('on'));ch.classList.add('on');bg=ch.dataset.bg;applyBg();}));
+const sizeSlider=document.getElementById('sizeSlider'),sizeVal=document.getElementById('sizeVal');
+sizeSlider.addEventListener('input',()=>{size=+sizeSlider.value;sizeVal.textContent=size;});
 
-// ── Palettes as curated color gradients (LUTs) ───────────────────────────────
-// The network outputs a scalar per pixel; we map it through a designed gradient
-// instead of raw RGB. That is what turns muddy noise into cohesive color.
-const GRADIENTS={
-  rgb:  ['#440154','#414487','#2a788e','#22a884','#7ad151','#fde725'], // viridis
-  fire: ['#000004','#3b0f70','#8c2981','#de4968','#fe9f6d','#fcfdbf'], // magma
-  ocean:['#03045e','#023e8a','#0077b6','#00b4d8','#90e0ef','#caf0f8'],
-  neon: ['#10002b','#ff006e','#8338ec','#3a86ff','#00f5d4','#ffbe0b'],
-  void: ['#03050e','#240046','#5a189a','#9d4edd','#c77dff','#e0aaff'],
-  mono: ['#000000','#2b2b3a','#6b6b85','#b8b8cc','#ffffff'],
-};
-function hex2rgb(h){h=h.replace('#','');return [parseInt(h.slice(0,2),16),parseInt(h.slice(2,4),16),parseInt(h.slice(4,6),16)];}
-const LUTS={};
-function getLUT(name){
-  if(LUTS[name])return LUTS[name];
-  const stops=(GRADIENTS[name]||GRADIENTS.rgb).map(hex2rgb);
-  const lut=new Uint8ClampedArray(256*3);
-  for(let i=0;i<256;i++){
-    const t=i/255*(stops.length-1),a=Math.floor(t),b=Math.min(a+1,stops.length-1),f=t-a;
-    for(let c=0;c<3;c++)lut[i*3+c]=stops[a][c]+(stops[b][c]-stops[a][c])*f;
-  }
-  LUTS[name]=lut;return lut;
-}
+// mode (hands / body)
+document.querySelectorAll('.chip.mode').forEach(ch=>ch.addEventListener('click',async()=>{
+  document.querySelectorAll('.chip.mode').forEach(e=>e.classList.remove('on'));ch.classList.add('on');mode=ch.dataset.m;
+  document.getElementById('key').classList.toggle('body-mode',mode==='body');
+  document.querySelectorAll('.body-only').forEach(e=>e.style.display=mode==='body'?'':'none');
+  if(running){ statusEl.textContent='Loading '+(mode==='body'?'body':'hand')+' model…'; try{await ensureModel();statusEl.textContent=mode==='body'?'🕺 Raise a hand to paint':'✋ Pinch to paint';}catch(e){statusEl.textContent='Model load failed';} }
+}));
 
-// ── Symmetry: fold the coordinate field ──────────────────────────────────────
-function foldCoords(xs,ys,mode){
-  if(mode==='mirror') return {x:tf.abs(xs),y:ys};
-  if(mode==='kal6'||mode==='kal8'){
-    const N=mode==='kal6'?6:8, seg=2*Math.PI/N;
-    const rad=tf.sqrt(xs.square().add(ys.square()));
-    let ang=tf.atan2(ys,xs).add(Math.PI);      // 0..2π
-    ang=tf.mod(ang,seg);                        // 0..seg
-    ang=tf.abs(ang.sub(seg/2));                 // mirror within wedge for continuity
-    return {x:rad.mul(tf.cos(ang)),y:rad.mul(tf.sin(ang))};
-  }
-  return {x:xs,y:ys};
+function toggle(id,label,get,set){const el=document.getElementById(id);el.addEventListener('click',()=>{set(!get());el.textContent=label+': '+(get()?'on':'off');el.classList.toggle('on',get());});}
+toggle('mirrorToggle','Mirror',()=>mirror,v=>mirror=v);
+toggle('fadeToggle','Fade trails',()=>fade,v=>fade=v);
+toggle('skelToggle','Show tracking',()=>showSkel,v=>showSkel=v);
+toggle('depthToggle','Depth size',()=>useDepth,v=>useDepth=v);
+toggle('twoHandToggle','🙌 2-hand colors',()=>twoHand,v=>twoHand=v);
+toggle('bloomToggle','🌌 Bloom',()=>bloom,v=>bloom=v);
+document.getElementById('fsToggle').addEventListener('click',()=>{const st=document.getElementById('stage');if(!document.fullscreenElement){if(st.requestFullscreen)st.requestFullscreen();}else document.exitFullscreen();});
+document.addEventListener('fullscreenchange',()=>{const st=document.getElementById('stage');if(document.fullscreenElement){Object.assign(st.style,{width:'100vw',height:'100vh',maxWidth:'none',aspectRatio:'auto',borderRadius:'0'});}else{Object.assign(st.style,{width:'',height:'',maxWidth:'',aspectRatio:'',borderRadius:''});}setTimeout(resize,60);});
+document.getElementById('mirrorToggle').classList.add('on');
+document.getElementById('skelToggle').classList.add('on');
+cam.style.transform=mirror?'scaleX(-1)':'none';
+document.getElementById('camToggle').addEventListener('click',()=>{showCam=!showCam;if(!viewMode)cam.style.opacity=showCam?'1':'0';document.getElementById('camToggle').textContent='Camera: '+(showCam?'visible':'hidden');});
+document.getElementById('viewToggle').addEventListener('click',toggleView);
+function toggleView(){
+  viewMode=!viewMode;
+  cam.style.opacity = viewMode ? '0' : (showCam?'1':'0');
+  if(viewMode)hctx.clearRect(0,0,hud.width,hud.height);
+  const b=document.getElementById('viewToggle'); b.classList.toggle('on',viewMode); b.textContent=viewMode?'👁 View: on':'👁 View';
+  statusEl.textContent = viewMode ? '👁 View mode — painting paused (👍 or button to exit)' : (mode==='body'?'🕺 Raise a hand to paint':'✋ Pinch to paint');
 }
+document.getElementById('audioToggle').addEventListener('click',toggleAudio);
 
-// ── Core render (respects view + symmetry) ───────────────────────────────────
-// Renders the network into a fresh rw×rh canvas — the same function powers the
-// live view, the breed-grid thumbnails, and infinite-resolution HD export.
-function computePixels(z0,z1,z2,scale,rw,rh){
-  const n=rw*rh;let raw;
-  tf.tidy(()=>{
-    const half=1/view.zoom;
-    let xs=tf.linspace(view.cx-half,view.cx+half,rw).tile([rh]);
-    let ys=tf.linspace(view.cy-half,view.cy+half,rh).expandDims(1).tile([1,rw]).reshape([n]);
-    const f=foldCoords(xs,ys,symmetry); xs=f.x; ys=f.y;
-    const rs=tf.sqrt(xs.square().add(ys.square()));
-    const inp=tf.stack([xs.mul(scale),ys.mul(scale),rs.mul(scale),tf.fill([n],z0),tf.fill([n],z1),tf.fill([n],z2)],1);
-    raw=model.predict(inp).dataSync();   // [n*3] in 0..1
-  });
-  const lut=getLUT(palette);
-  const tmp=document.createElement('canvas');tmp.width=rw;tmp.height=rh;
-  const tc=tmp.getContext('2d');const img=tc.createImageData(rw,rh);
-  for(let i=0;i<n;i++){
-    let t=raw[i*3]*0.65+raw[i*3+1]*0.25+raw[i*3+2]*0.10;  // scalar position along gradient
-    t=(t-0.5)*CONTRAST+0.5; t=t<0?0:(t>1?1:t);
-    const j=((t*255)|0)*3;
-    img.data[i*4]=lut[j];img.data[i*4+1]=lut[j+1];img.data[i*4+2]=lut[j+2];img.data[i*4+3]=255;
-  }
-  tc.putImageData(img,0,0);
-  if(textWord)applyTextMask(tmp,rw,rh);
-  return tmp;
-}
+document.getElementById('clearBtn').addEventListener('click',()=>clearCanvas('Cleared'));
+function clearCanvas(msg){pushUndo();pctx.clearRect(0,0,paint.width,paint.height);statusEl.textContent=msg;}
+document.getElementById('undoBtn').addEventListener('click',undo);
+function pushUndo(){const c=document.createElement('canvas');c.width=paint.width;c.height=paint.height;c.getContext('2d').drawImage(paint,0,0);undoStack.push(c);if(undoStack.length>12)undoStack.shift();}
+function undo(){if(!undoStack.length){statusEl.textContent='Nothing to undo';return;}const c=undoStack.pop();pctx.clearRect(0,0,paint.width,paint.height);pctx.drawImage(c,0,0);statusEl.textContent='↶ Undo';}
+document.getElementById('saveBtn').addEventListener('click',()=>{const out=document.createElement('canvas');out.width=paint.width;out.height=paint.height;const o=out.getContext('2d');paintBg(o,out.width,out.height);o.drawImage(paint,0,0);o.drawImage(fx,0,0);const a=document.createElement('a');a.download='neural-canvas-'+Date.now()+'.png';a.href=out.toDataURL('image/png');a.click();statusEl.textContent='↓ Saved';});
+document.getElementById('recBtn').addEventListener('click',toggleRecord);
+document.getElementById('aboutToggle').addEventListener('click',()=>{const b=document.getElementById('aboutBody');b.classList.toggle('open');document.getElementById('aboutArrow').textContent=b.classList.contains('open')?'↓':'›';});
 
-// ── Word-in-art: fill the typed letters with the neural texture ───────────────
-function drawWordText(c,rw,rh,word){
-  c.save();c.fillStyle='#fff';c.textAlign='center';c.textBaseline='middle';
-  let fs=rh*0.55;c.font='900 '+fs+'px Arial, Helvetica, sans-serif';
-  const maxW=rw*0.88, w=c.measureText(word).width;
-  if(w>maxW){fs=fs*maxW/w;c.font='900 '+fs+'px Arial, Helvetica, sans-serif';}
-  c.fillText(word,rw/2,rh/2);c.restore();
-}
-function applyTextMask(artCv,rw,rh){
-  // 1) keep the art only inside the letters
-  const lettered=document.createElement('canvas');lettered.width=rw;lettered.height=rh;
-  const lc=lettered.getContext('2d');
-  lc.drawImage(artCv,0,0);
-  lc.globalCompositeOperation='destination-in';
-  drawWordText(lc,rw,rh,textWord);
-  // 2) dark background + a soft glow, then the lettered art on top
-  const ac=artCv.getContext('2d');
-  ac.globalCompositeOperation='source-over';
-  ac.fillStyle='#05050c';ac.fillRect(0,0,rw,rh);
-  ac.save();ac.shadowColor='rgba(136,96,240,0.7)';ac.shadowBlur=rw*0.02;
-  ac.drawImage(lettered,0,0);ac.restore();
-  ac.drawImage(lettered,0,0);
-}
-function renderFrame(z0,z1,z2,scale,rw,rh){
-  if(!model)return;
-  const tmp=computePixels(z0,z1,z2,scale,rw,rh);
-  ctx.imageSmoothingEnabled=rw<W;ctx.drawImage(tmp,0,0,W,H);
-}
+// ── Sizing ───────────────────────────────────────────────────────────────────
+function resize(){const r=paint.getBoundingClientRect();const w=Math.round(r.width),h=Math.round(r.height);if(w===paint.width&&h===paint.height)return;
+  const snap=document.createElement('canvas');snap.width=paint.width;snap.height=paint.height;if(paint.width)snap.getContext('2d').drawImage(paint,0,0);
+  paint.width=w;paint.height=h;fx.width=w;fx.height=h;hud.width=w;hud.height=h;if(snap.width)pctx.drawImage(snap,0,0,w,h);}
+new ResizeObserver(resize).observe(paint);
 
-function getZ(){return{z0:+document.getElementById('s0').value,z1:+document.getElementById('s1').value,z2:+document.getElementById('s2').value,scale:+document.getElementById('ss').value};}
-
-function doRender(opts={}){
-  if(busy&&!opts.force)return;busy=true;statusEl.textContent='Rendering…';
-  setTimeout(()=>{const{z0,z1,z2,scale}=getZ();renderFrame(z0,z1,z2,scale,W,H);overlay.classList.add('hidden');statusEl.textContent='✓  Ready';busy=false;},12);
+// ── Camera + models ──────────────────────────────────────────────────────────
+document.getElementById('startBtn').addEventListener('click',startCamera);
+document.getElementById('stopCamBtn').addEventListener('click',stopCamera);
+async function getFileset(){ if(!fileset) fileset=await FilesetResolver.forVisionTasks(WASM); return fileset; }
+async function ensureModel(){
+  const fs=await getFileset();
+  if(mode==='hands' && !gestureModel) gestureModel=await GestureRecognizer.createFromOptions(fs,{baseOptions:{modelAssetPath:GESTURE_URL,delegate:'GPU'},runningMode:'VIDEO',numHands:2});
+  if(mode==='body' && !poseModel) poseModel=await PoseLandmarker.createFromOptions(fs,{baseOptions:{modelAssetPath:POSE_URL,delegate:'GPU'},runningMode:'VIDEO',numPoses:1});
 }
-function previewRender(){const{z0,z1,z2,scale}=getZ();renderFrame(z0,z1,z2,scale,AW,AH);}
-
-function setSlider(id,vid,val){const el=document.getElementById(id);el.value=val;document.getElementById(vid).textContent=parseFloat(val).toFixed(2);}
-function setPalette(mode){palette=mode;document.querySelectorAll('.chip.pal').forEach(c=>c.classList.toggle('on',c.dataset.m===mode));}
-function setSymmetry(mode){symmetry=mode;document.querySelectorAll('.chip.sym').forEach(c=>c.classList.toggle('on',c.dataset.s===mode));}
-
-// ── Sliders / palette / symmetry ─────────────────────────────────────────────
-[['s0','v0'],['s1','v1'],['s2','v2'],['ss','vs']].forEach(([sid,vid])=>{
-  const sl=document.getElementById(sid),vl=document.getElementById(vid);
-  sl.addEventListener('input',()=>{vl.textContent=parseFloat(sl.value).toFixed(2);if(!animating&&!audioActive)doRender();});
-});
-document.querySelectorAll('.chip.pal').forEach(chip=>{
-  chip.addEventListener('click',()=>{setPalette(chip.dataset.m);if(!animating&&!audioActive)doRender();});
-});
-document.querySelectorAll('.chip.sym').forEach(chip=>{
-  chip.addEventListener('click',()=>{setSymmetry(chip.dataset.s);if(!animating&&!audioActive)doRender();});
-});
-
-// ── History ──────────────────────────────────────────────────────────────────
-function buildThumbsUI(){
-  const wrap=document.getElementById('thumbs');wrap.innerHTML='';
-  for(let i=0;i<MAX_HISTORY;i++){
-    const entry=history[history.length-1-i];
-    const c=document.createElement('canvas');c.width=60;c.height=60;
-    const selected=entry&&(breedSelection.indexOf(entry)>=0||morphSelection.indexOf(entry)>=0);
-    c.className='thumb'+(entry?'':' empty')+(selected?' sel':'');
-    if(entry){
-      const img=new Image();img.onload=()=>c.getContext('2d').drawImage(img,0,0,60,60);img.src=entry.dataUrl;
-      c.title=breedMode?'Click to select as parent':(morphMode?'Click to select to morph':'Click to restore');
-      c.addEventListener('click',()=>{ if(breedMode) toggleBreedSelect(entry,c); else if(morphMode) toggleMorphSelect(entry,c); else restoreHistory(entry); });
-    }
-    wrap.appendChild(c);
-  }
-}
-
-function saveToHistory(){
-  if(!overlay.classList.contains('hidden'))return;
-  const dataUrl=canvas.toDataURL('image/png');
-  const weights=model.getWeights().map(w=>w.dataSync().slice());
-  history.push({dataUrl,weights,sliders:{...getZ()},palette,symmetry,seed:currentSeed,view:{...view},textWord});
-  if(history.length>MAX_HISTORY)history.shift();
-  buildThumbsUI();
-}
-
-function restoreHistory(entry){
-  if(animating)toggleAnim();if(audioActive)stopAudio();if(morphActive)stopMorph();
-  const wt=model.getWeights().map((w,i)=>tf.tensor(entry.weights[i],w.shape));
-  model.setWeights(wt);wt.forEach(t=>t.dispose());
-  currentSeed=entry.seed;
-  const{z0,z1,z2,scale}=entry.sliders;
-  setSlider('s0','v0',z0);setSlider('s1','v1',z1);setSlider('s2','v2',z2);setSlider('ss','vs',scale);
-  setPalette(entry.palette);setSymmetry(entry.symmetry||'none');
-  view=entry.view?{...entry.view}:{cx:0,cy:0,zoom:1};
-  textWord=entry.textWord||'';
-  doRender({force:true});
-}
-
-// ── New Seed ─────────────────────────────────────────────────────────────────
-document.getElementById('bSeed').addEventListener('click',()=>{
-  if(morphActive)stopMorph();
-  saveToHistory();
-  view={cx:0,cy:0,zoom:1};textWord='';
-  applySeed(Math.floor(Math.random()*1e9),true);
-  doRender({force:true});
-  statusEl.textContent='✦ New seed '+currentSeed;
-});
-
-// ── Mutate (asexual: perturb weights) ────────────────────────────────────────
-document.getElementById('bMutate').addEventListener('click',()=>{
-  if(!model)return;
-  if(morphActive)stopMorph();
-  saveToHistory();textWord='';
-  const wt=model.getWeights().map(w=>{const nz=tf.randomNormal(w.shape,0,MUT_RATE);const nw=w.add(nz);nz.dispose();return nw;});
-  model.setWeights(wt);wt.forEach(t=>t.dispose());
-  currentSeed=null;
-  doRender({force:true});
-  statusEl.textContent='⚛ Mutated';
-});
-
-// ── Breed (sexual: crossover two parents' weights) ───────────────────────────
-document.getElementById('bBreed').addEventListener('click',toggleBreedMode);
-function toggleBreedMode(){
-  const btn=document.getElementById('bBreed');
-  if(!breedMode){
-    if(history.length<2){statusEl.textContent='Need 2+ artworks in history to breed';return;}
-    if(morphActive)stopMorph();if(morphMode)exitMorphMode();
-    breedMode=true;btn.classList.add('breed-on');
-    statusEl.textContent='🧬 Breed: pick 2 parents from history (0/2)';
-    buildThumbsUI();
-  }else{ exitBreedMode(); statusEl.textContent='Breed cancelled'; }
-}
-function exitBreedMode(){
-  breedMode=false;breedSelection=[];
-  document.getElementById('bBreed').classList.remove('breed-on');
-  buildThumbsUI();
-}
-function toggleBreedSelect(entry,el){
-  const idx=breedSelection.indexOf(entry);
-  if(idx>=0){breedSelection.splice(idx,1);el.classList.remove('sel');}
-  else{ if(breedSelection.length>=2)return; breedSelection.push(entry);el.classList.add('sel'); }
-  statusEl.textContent='🧬 Breed: pick 2 parents ('+breedSelection.length+'/2)';
-  if(breedSelection.length===2)startBreedGrid(breedSelection[0],breedSelection[1]);
-}
-
-// ── Genome = flat copy of the network's weights (for crossover / mutation) ────
-function currentGenome(){return model.getWeights().map(w=>w.dataSync().slice());}
-function setGenome(g){const wt=model.getWeights().map((w,i)=>tf.tensor(g[i],w.shape));model.setWeights(wt);wt.forEach(t=>t.dispose());}
-function crossGenome(a,b,rate){const out=[];for(let i=0;i<a.length;i++){const av=a[i],bv=b[i],len=av.length,o=new Float32Array(len);for(let k=0;k<len;k++)o[k]=(Math.random()<0.5?av[k]:bv[k])+(Math.random()*2-1)*rate;out.push(o);}return out;}
-function mutateGenome(g,rate){const out=[];for(let i=0;i<g.length;i++){const gv=g[i],len=gv.length,o=new Float32Array(len);for(let k=0;k<len;k++)o[k]=gv[k]+(Math.random()*2-1)*rate;out.push(o);}return out;}
-
-// ── Breed as a generation grid (interactive evolution, Picbreeder-style) ──────
-function startBreedGrid(a,b){
-  exitBreedMode();
-  if(animating)toggleAnim();if(audioActive)stopAudio();
-  originalGenome=currentGenome();
-  saveToHistory();               // preserve whatever was on the canvas
-  textWord='';
-  gridSliders={z0:(a.sliders.z0+b.sliders.z0)/2,z1:(a.sliders.z1+b.sliders.z1)/2,z2:(a.sliders.z2+b.sliders.z2)/2,scale:(a.sliders.scale+b.sliders.scale)/2};
-  gridPalette=a.palette;
-  gridSelIndex=-1;
-  gridGenomes=[];
-  for(let i=0;i<GRID_N;i++)gridGenomes.push(crossGenome(a.weights,b.weights,BREED_RATE*(1+i*0.18)));
-  showGrid('Pick an offspring — click one to breed from it');
-}
-function renderGenomeTile(cv,genome){
-  setGenome(genome);
-  const sv=view,sp=palette,ss=symmetry;
-  view={cx:0,cy:0,zoom:1};palette=gridPalette;symmetry='none';
-  const tmp=computePixels(gridSliders.z0,gridSliders.z1,gridSliders.z2,gridSliders.scale,120,120);
-  view=sv;palette=sp;symmetry=ss;
-  cv.width=120;cv.height=120;cv.getContext('2d').drawImage(tmp,0,0);
-}
-function showGrid(msg){
-  const card=document.getElementById('modalCard');card.innerHTML='';
-  const h=document.createElement('div');h.className='modal-title';h.textContent='🧬 '+msg;card.appendChild(h);
-  const grid=document.createElement('div');grid.className='breed-grid';
-  gridGenomes.forEach((g,i)=>{
-    const cv=document.createElement('canvas');cv.className='breed-tile'+(i===gridSelIndex?' sel':'');
-    renderGenomeTile(cv,g);cv.title='Click to breed from this one';
-    cv.addEventListener('click',()=>{
-      gridSelIndex=i;const base=gridGenomes[i];
-      gridGenomes=gridGenomes.map((gg,j)=>j===i?gg:mutateGenome(base,MUT_RATE));
-      showGrid('Bred from #'+(i+1)+' — pick again, or Use it');
-    });
-    grid.appendChild(cv);
-  });
-  card.appendChild(grid);
-  const row=document.createElement('div');row.className='modal-btns';
-  const use=document.createElement('button');use.className='btn evo';use.textContent='✓ Use selected';use.addEventListener('click',commitBreed);
-  const regen=document.createElement('button');regen.className='btn';regen.textContent='↻ Shuffle';
-  regen.addEventListener('click',()=>{const base=gridSelIndex>=0?gridGenomes[gridSelIndex]:gridGenomes[0];gridGenomes=gridGenomes.map(()=>mutateGenome(base,MUT_RATE*1.5));gridSelIndex=-1;showGrid('New generation — click one');});
-  const cancel=document.createElement('button');cancel.className='btn';cancel.textContent='✕ Cancel';cancel.addEventListener('click',cancelBreed);
-  row.appendChild(use);row.appendChild(regen);row.appendChild(cancel);card.appendChild(row);
-  modalOnCancel=cancelBreed;
-  document.getElementById('modal').classList.add('open');
-}
-function commitBreed(){
-  const g=gridGenomes[gridSelIndex>=0?gridSelIndex:0];
-  setGenome(g);currentSeed=null;
-  setSlider('s0','v0',gridSliders.z0);setSlider('s1','v1',gridSliders.z1);setSlider('s2','v2',gridSliders.z2);setSlider('ss','vs',gridSliders.scale);
-  setPalette(gridPalette);setSymmetry('none');view={cx:0,cy:0,zoom:1};
-  closeModal();doRender({force:true});statusEl.textContent='🧬 Offspring selected';
-}
-function cancelBreed(){ if(originalGenome)setGenome(originalGenome); closeModal(); doRender({force:true}); statusEl.textContent='Breed cancelled'; }
-function closeModal(){modalOnCancel=null;document.getElementById('modal').classList.remove('open');}
-document.getElementById('modal').addEventListener('click',e=>{if(e.target.id==='modal'){if(modalOnCancel)modalOnCancel();else closeModal();}});
-
-// ── Morph (smoothly interpolate the weights between two artworks) ──────────────
-function lerpGenome(a,b,u){const out=[];for(let i=0;i<a.length;i++){const av=a[i],bv=b[i],len=av.length,o=new Float32Array(len);for(let k=0;k<len;k++)o[k]=av[k]+(bv[k]-av[k])*u;out.push(o);}return out;}
-document.getElementById('bMorph').addEventListener('click',toggleMorphMode);
-function toggleMorphMode(){
-  const btn=document.getElementById('bMorph');
-  if(morphActive){stopMorph();return;}
-  if(!morphMode){
-    if(history.length<2){statusEl.textContent='Need 2+ artworks in history to morph';return;}
-    if(breedMode)exitBreedMode();
-    morphMode=true;btn.classList.add('breed-on');
-    statusEl.textContent='🌀 Morph: pick 2 artworks to blend (0/2)';
-    buildThumbsUI();
-  }else{ exitMorphMode(); statusEl.textContent='Morph cancelled'; }
-}
-function exitMorphMode(){morphMode=false;morphSelection=[];document.getElementById('bMorph').classList.remove('breed-on');buildThumbsUI();}
-function toggleMorphSelect(entry,el){
-  const idx=morphSelection.indexOf(entry);
-  if(idx>=0){morphSelection.splice(idx,1);el.classList.remove('sel');}
-  else{ if(morphSelection.length>=2)return; morphSelection.push(entry);el.classList.add('sel'); }
-  statusEl.textContent='🌀 Morph: pick 2 artworks ('+morphSelection.length+'/2)';
-  if(morphSelection.length===2)startMorph(morphSelection[0],morphSelection[1]);
-}
-function startMorph(a,b){
-  exitMorphMode();
-  if(animating)toggleAnim();if(audioActive)stopAudio();
-  originalGenome=currentGenome();textWord='';
-  morphA=a.weights;morphB=b.weights;morphAS=a.sliders;morphBS=b.sliders;
-  setPalette(a.palette);setSymmetry(a.symmetry||'none');view={cx:0,cy:0,zoom:1};currentSeed=null;
-  morphActive=true;morphT=0;
-  const btn=document.getElementById('bMorph');btn.classList.add('on');btn.textContent='⏹ Stop Morph';
-  statusEl.textContent='🌀 Morphing — hit Record to capture it';
-  morphLoop();
-}
-function morphLoop(){
-  if(!morphActive)return;
-  morphT+=0.02;
-  const u=0.5-0.5*Math.cos(morphT);   // smooth ping-pong 0↔1
-  setGenome(lerpGenome(morphA,morphB,u));
-  const z0=morphAS.z0+(morphBS.z0-morphAS.z0)*u,z1=morphAS.z1+(morphBS.z1-morphAS.z1)*u,z2=morphAS.z2+(morphBS.z2-morphAS.z2)*u,scale=morphAS.scale+(morphBS.scale-morphAS.scale)*u;
-  renderFrame(z0,z1,z2,scale,AW,AH);
-  morphRaf=requestAnimationFrame(morphLoop);
-}
-function stopMorph(){
-  if(!morphActive)return;
-  morphActive=false;cancelAnimationFrame(morphRaf);
-  const btn=document.getElementById('bMorph');btn.classList.remove('on');btn.textContent='🌀 Morph';
-  if(originalGenome)setGenome(originalGenome);
-  doRender({force:true});statusEl.textContent='Morph stopped';
-}
-
-// ── Evolve (animate latent vector) ───────────────────────────────────────────
-function toggleAnim(){
-  if(morphActive)stopMorph();
-  animating=!animating;const btn=document.getElementById('bAnim');
-  btn.classList.toggle('on',animating);btn.textContent=animating?'⏸ Pause':'▶ Evolve';
-  if(animating)animLoop();else cancelAnimationFrame(animRaf);
-}
-document.getElementById('bAnim').addEventListener('click',toggleAnim);
-function animLoop(){
-  if(!animating||!model)return;animT+=0.018;
-  const{z0,z1,z2,scale}=getZ();
-  renderFrame(z0+Math.sin(animT*0.73)*1.4,z1+Math.cos(animT*0.51)*0.9,z2+Math.sin(animT*0.39+1.2)*1.1,scale,AW,AH);
-  animRaf=requestAnimationFrame(animLoop);
-}
-
-// ── Audio React ──────────────────────────────────────────────────────────────
-function stopAudio(){
-  audioActive=false;cancelAnimationFrame(audioRaf);
-  if(analyser){analyser.disconnect();analyser=null;}
-  if(audioCtx){audioCtx.close();audioCtx=null;}
-  audioData=null;vuFill.style.width='0%';canvasWrap.classList.remove('audio-active');
-  const btn=document.getElementById('bAudio');btn.classList.remove('audio-on');btn.textContent='🎙 Audio React';
-  statusEl.textContent='Audio off';
-}
-async function toggleAudio(){
-  if(audioActive){stopAudio();return;}
-  if(morphActive)stopMorph();
+async function startCamera(){
+  const b=document.getElementById('startBtn');
   try{
-    statusEl.textContent='Requesting mic…';
-    const stream=await navigator.mediaDevices.getUserMedia({audio:true,video:false});
-    audioCtx=new(window.AudioContext||window.webkitAudioContext)();
-    analyser=audioCtx.createAnalyser();analyser.fftSize=256;analyser.smoothingTimeConstant=0.7;
-    audioData=new Uint8Array(analyser.frequencyBinCount);
-    audioCtx.createMediaStreamSource(stream).connect(analyser);
-    audioActive=true;canvasWrap.classList.add('audio-active');
-    const btn=document.getElementById('bAudio');btn.classList.add('audio-on');btn.textContent='🔴 Stop Audio';
-    statusEl.textContent='🎙 Listening…';
-    if(animating)toggleAnim();
-    audioLoop();
-  }catch(e){statusEl.textContent='Mic access denied';console.error(e);}
+    ovTitle.textContent='Loading…';ovText.textContent='Requesting camera and downloading the model (a few MB, first time only).';b.style.display='none';
+    statusEl.textContent='Requesting camera…';
+    stream=await navigator.mediaDevices.getUserMedia({video:{width:960,height:720,facingMode:'user'},audio:false});
+    cam.srcObject=stream; await new Promise(r=>{cam.onloadedmetadata=()=>{cam.play();r();};}); resize();
+    statusEl.textContent='Loading model…'; await ensureModel();
+    overlay.classList.add('hidden'); running=true; lastVideoTime=-1; lastSeenTime=performance.now();
+    statusEl.textContent=mode==='body'?'🕺 Raise a hand to paint':'✋ Pinch to paint';
+    document.getElementById('stopCamBtn').style.display='';
+    requestAnimationFrame(loop);
+  }catch(e){console.error(e);overlay.classList.remove('hidden');ovTitle.textContent='Couldn’t start';
+    ovText.innerHTML='<span class="err">'+(e.name==='NotAllowedError'?'Camera permission denied. Allow it and reload.':(e.message||e))+'</span>';
+    b.style.display='';b.textContent='✋ Retry';statusEl.textContent='Error';}
 }
-document.getElementById('bAudio').addEventListener('click',toggleAudio);
-function getAudioLevels(){
-  if(!analyser||!audioData)return{bass:0,mid:0,treble:0,volume:0};
-  analyser.getByteFrequencyData(audioData);
-  const n=audioData.length;let bass=0,mid=0,treble=0;
-  for(let i=0;i<n;i++){const v=audioData[i]/255;if(i<n*0.10)bass+=v;else if(i<n*0.50)mid+=v;else treble+=v;}
-  bass/=(n*0.10);mid/=(n*0.40);treble/=(n*0.50);
-  return{bass,mid,treble,volume:(bass+mid+treble)/3};
-}
-function audioLoop(){
-  if(!audioActive||!model)return;
-  const{bass,mid,treble,volume}=getAudioLevels();
-  vuFill.style.width=Math.min(100,volume*150)+'%';
-  const base=getZ();
-  renderFrame(base.z0+(bass-0.3)*3.0,base.z1+(mid-0.3)*2.0,base.z2+(treble-0.3)*1.5,base.scale,AW,AH);
-  audioRaf=requestAnimationFrame(audioLoop);
+function stopCamera(){
+  if(!running&&!stream)return; running=false;
+  if(recording){if(recTimeout)clearTimeout(recTimeout);if(recorder&&recorder.state!=='inactive')recorder.stop();}
+  if(stream){stream.getTracks().forEach(t=>t.stop());stream=null;} cam.srcObject=null;
+  Object.keys(pens).forEach(id=>{pens[id].drawing=false;pens[id].fx=null;});
+  hctx.clearRect(0,0,hud.width,hud.height);
+  ovTitle.textContent='Camera off'; ovText.innerHTML='The camera is stopped — nothing is being captured. Your painting is safe; press resume, or Save it below.';
+  const b=document.getElementById('startBtn');b.style.display='';b.textContent='✋ Resume';overlay.classList.remove('hidden');
+  document.getElementById('stopCamBtn').style.display='none'; statusEl.textContent='Camera off — not capturing';
 }
 
-// ── Record (WebM of the living animation) ────────────────────────────────────
-document.getElementById('bRec').addEventListener('click',toggleRecord);
-function toggleRecord(){
-  if(recording){finishRecord();return;}
-  if(typeof MediaRecorder==='undefined'||!canvas.captureStream){statusEl.textContent='Recording unsupported in this browser';return;}
-  try{
-    const stream=canvas.captureStream(30);
-    recChunks=[];
-    let mr;
-    try{mr=new MediaRecorder(stream,{mimeType:'video/webm;codecs=vp9'});}
-    catch(e){mr=new MediaRecorder(stream);}
-    mediaRecorder=mr;
-    mediaRecorder.ondataavailable=e=>{if(e.data&&e.data.size)recChunks.push(e.data);};
-    mediaRecorder.onstop=()=>{
-      const blob=new Blob(recChunks,{type:mediaRecorder.mimeType||'video/webm'});
-      const a=document.createElement('a');a.download='neural-canvas-'+Date.now()+'.webm';a.href=URL.createObjectURL(blob);a.click();
-      setTimeout(()=>URL.revokeObjectURL(a.href),1000);
-      recording=false;canvasWrap.classList.remove('recording');
-      const btn=document.getElementById('bRec');btn.classList.remove('rec-on');btn.textContent='⏺ Record';
-      if(recAutoAnim&&animating)toggleAnim();recAutoAnim=false;
-      statusEl.textContent='⬇ Video saved';
-    };
-    mediaRecorder.start();
-    recording=true;canvasWrap.classList.add('recording');
-    const btn=document.getElementById('bRec');btn.classList.add('rec-on');btn.textContent='⏹ Stop Rec';
-    if(!animating&&!audioActive&&!morphActive){recAutoAnim=true;toggleAnim();}
-    statusEl.textContent='⏺ Recording '+REC_SECONDS+'s…';
-    recTimeout=setTimeout(()=>{if(recording)finishRecord();},REC_SECONDS*1000);
-  }catch(e){statusEl.textContent='Record failed: '+e.message;console.error(e);}
-}
-function finishRecord(){
-  if(recTimeout){clearTimeout(recTimeout);recTimeout=null;}
-  if(mediaRecorder&&mediaRecorder.state!=='inactive')mediaRecorder.stop();
-}
+// ── Helpers ──────────────────────────────────────────────────────────────────
+const HAND_CONN=[[0,1],[1,2],[2,3],[3,4],[0,5],[5,6],[6,7],[7,8],[5,9],[9,10],[10,11],[11,12],[9,13],[13,14],[14,15],[15,16],[13,17],[17,18],[18,19],[19,20],[0,17]];
+const POSE_CONN=[[11,12],[11,13],[13,15],[12,14],[14,16],[11,23],[12,24],[23,24]];
+function px(lm){return {x:(mirror?1-lm.x:lm.x)*paint.width, y:lm.y*paint.height};}
+function dist(a,b){return Math.hypot(a.x-b.x,a.y-b.y);}
+function depthScale(hand){ if(!useDepth)return 1; const ref=dist(px(hand[0]),px(hand[9]))/paint.width; return Math.max(0.4,Math.min(2.4,ref/0.11)); }
 
-// ── Save PNG ─────────────────────────────────────────────────────────────────
-document.getElementById('bSave').addEventListener('click',()=>{
-  if(animating)toggleAnim();if(audioActive)stopAudio();if(morphActive)stopMorph();
-  setTimeout(()=>{
-    const{z0,z1,z2,scale}=getZ();renderFrame(z0,z1,z2,scale,W,H);
-    setTimeout(()=>{const a=document.createElement('a');a.download='neural-canvas-'+Date.now()+'.png';a.href=canvas.toDataURL('image/png');a.click();statusEl.textContent='↓ Saved';},100);
-  },50);
-});
-
-// ── Export HD (infinite resolution — it's a function, not pixels) ─────────────
-document.getElementById('bExport').addEventListener('click',()=>exportHD(2048));
-function exportHD(size){
-  if(!model)return;
-  if(animating)toggleAnim();if(audioActive)stopAudio();if(morphActive)stopMorph();
-  statusEl.textContent='Rendering '+size+'×'+size+'…';
-  setTimeout(()=>{
+// ── Main loop ────────────────────────────────────────────────────────────────
+function loop(){
+  if(!running)return;
+  updateParticles();
+  if(cam.currentTime!==lastVideoTime && cam.videoWidth){
+    lastVideoTime=cam.currentTime;
+    hctx.clearRect(0,0,hud.width,hud.height);
+    if(fade){pctx.save();pctx.globalCompositeOperation='destination-out';pctx.fillStyle='rgba(0,0,0,0.06)';pctx.fillRect(0,0,paint.width,paint.height);pctx.restore();}
+    if(audioActive)readAudio();
     try{
-      const{z0,z1,z2,scale}=getZ();
-      const tmp=computePixels(z0,z1,z2,scale,size,size);
-      const a=document.createElement('a');a.download='neural-canvas-'+size+'-'+Date.now()+'.png';a.href=tmp.toDataURL('image/png');a.click();
-      statusEl.textContent='⬇ Exported '+size+'×'+size;
-    }catch(e){statusEl.textContent='Export failed: '+e.message;console.error(e);}
-  },30);
-}
-
-// ── Share (encode reproducible state into URL + QR code) ──────────────────────
-function buildShareURL(){
-  const p=new URLSearchParams();
-  p.set('seed',currentSeed);
-  const{z0,z1,z2,scale}=getZ();
-  p.set('z',[z0,z1,z2,scale].map(v=>(+v).toFixed(3)).join(','));
-  p.set('pal',palette);
-  if(symmetry!=='none')p.set('sym',symmetry);
-  if(textWord)p.set('t',textWord);
-  if(view.zoom!==1||view.cx!==0||view.cy!==0)p.set('v',[view.cx.toFixed(4),view.cy.toFixed(4),view.zoom.toFixed(4)].join(','));
-  return location.origin+location.pathname+'#'+p.toString();
-}
-document.getElementById('bShare').addEventListener('click',()=>{
-  if(currentSeed==null){statusEl.textContent='Mutated/bred art has no seed — use Save PNG or Export HD';return;}
-  const url=buildShareURL();
-  location.hash=url.split('#')[1];
-  const card=document.getElementById('modalCard');card.innerHTML='';
-  const h=document.createElement('div');h.className='modal-title';h.textContent='🔗 Share this artwork';card.appendChild(h);
-  const qwrap=document.createElement('div');qwrap.className='qr-wrap';
-  try{const qr=qrcode(0,'M');qr.addData(url);qr.make();qwrap.innerHTML=qr.createImgTag(5,8);}
-  catch(e){qwrap.textContent='(QR unavailable)';}
-  card.appendChild(qwrap);
-  const link=document.createElement('input');link.className='share-link';link.value=url;link.readOnly=true;
-  link.addEventListener('focus',()=>link.select());card.appendChild(link);
-  const row=document.createElement('div');row.className='modal-btns';
-  const copy=document.createElement('button');copy.className='btn evo';copy.textContent='📋 Copy link';
-  copy.addEventListener('click',()=>{link.select();if(navigator.clipboard&&navigator.clipboard.writeText)navigator.clipboard.writeText(url);copy.textContent='✓ Copied';});
-  const close=document.createElement('button');close.className='btn';close.textContent='✕ Close';close.addEventListener('click',closeModal);
-  row.appendChild(copy);row.appendChild(close);card.appendChild(row);
-  modalOnCancel=closeModal;
-  document.getElementById('modal').classList.add('open');
-  statusEl.textContent='🔗 Scan the QR or copy the link';
-});
-
-// ── Name → art (deterministic: same word always makes the same piece) ─────────
-function nameArt(){
-  const word=(document.getElementById('nameInput').value||'').trim();
-  if(!word){statusEl.textContent='Type a word first';return;}
-  if(animating)toggleAnim();if(audioActive)stopAudio();if(morphActive)stopMorph();
-  saveToHistory();
-  view={cx:0,cy:0,zoom:1};
-  applySeed(hashStr(word),true);
-  textWord=word;                    // show the actual letters, filled with the art
-  doRender({force:true});
-  statusEl.textContent='✦ “'+word+'” in neural texture';
-}
-document.getElementById('bName').addEventListener('click',nameArt);
-document.getElementById('nameInput').addEventListener('keydown',e=>{if(e.key==='Enter')nameArt();});
-
-// ── Preset gallery ────────────────────────────────────────────────────────────
-function loadPreset(p){
-  if(animating)toggleAnim();if(audioActive)stopAudio();if(morphActive)stopMorph();
-  saveToHistory();
-  view={cx:0,cy:0,zoom:1};textWord='';
-  applySeed(p.seed,false);
-  setSlider('s0','v0',p.z[0]);setSlider('s1','v1',p.z[1]);setSlider('s2','v2',p.z[2]);setSlider('ss','vs',p.z[3]);
-  setPalette(p.pal);setSymmetry(p.sym||'none');
-  doRender({force:true});
-  statusEl.textContent='✦ '+p.name;
-}
-function buildGallery(){
-  const g=document.getElementById('gallery');g.innerHTML='';
-  PRESETS.forEach(p=>{const b=document.createElement('button');b.className='chip preset';b.textContent=p.name;b.addEventListener('click',()=>loadPreset(p));g.appendChild(b);});
-}
-
-function loadFromHash(){
-  if(!location.hash||location.hash.length<2)return false;
-  const p=new URLSearchParams(location.hash.slice(1));
-  if(!p.has('seed'))return false;
-  applySeed(+p.get('seed'),false);
-  if(p.has('z')){const a=p.get('z').split(',').map(Number);if(a.length>=4){setSlider('s0','v0',a[0]);setSlider('s1','v1',a[1]);setSlider('s2','v2',a[2]);setSlider('ss','vs',a[3]);}}
-  if(p.has('pal'))setPalette(p.get('pal'));
-  if(p.has('sym'))setSymmetry(p.get('sym'));
-  if(p.has('t')){textWord=p.get('t');const ni=document.getElementById('nameInput');if(ni)ni.value=textWord;}
-  if(p.has('v')){const a=p.get('v').split(',').map(Number);if(a.length>=3)view={cx:a[0],cy:a[1],zoom:a[2]};}
-  return true;
-}
-
-// ── Canvas interaction: zoom / pan / click-randomize ─────────────────────────
-let dragging=false,dragMoved=false,lastX=0,lastY=0;
-function ptr(e){return e.touches&&e.touches[0]?e.touches[0]:e;}
-canvas.addEventListener('mousedown',e=>{dragging=true;dragMoved=false;lastX=e.clientX;lastY=e.clientY;});
-window.addEventListener('mousemove',e=>{
-  if(!dragging)return;
-  const dx=e.clientX-lastX,dy=e.clientY-lastY;
-  if(Math.abs(dx)+Math.abs(dy)>3)dragMoved=true;
-  lastX=e.clientX;lastY=e.clientY;
-  const half=1/view.zoom;
-  view.cx-=dx/canvas.clientWidth*2*half;
-  view.cy-=dy/canvas.clientHeight*2*half;
-  if(!animating&&!audioActive)previewRender();
-});
-window.addEventListener('mouseup',()=>{
-  if(dragging&&dragMoved&&!animating&&!audioActive)doRender({force:true});
-  dragging=false;
-});
-canvas.addEventListener('wheel',e=>{
-  e.preventDefault();
-  const rect=canvas.getBoundingClientRect();
-  const mx=(e.clientX-rect.left)/rect.width, my=(e.clientY-rect.top)/rect.height;
-  const half=1/view.zoom;
-  const wx=view.cx-half+mx*2*half, wy=view.cy-half+my*2*half;
-  view.zoom*=(e.deltaY<0?1.15:1/1.15);
-  view.zoom=Math.max(0.15,Math.min(view.zoom,400));
-  const nhalf=1/view.zoom;
-  view.cx=wx-(mx*2*nhalf-nhalf);
-  view.cy=wy-(my*2*nhalf-nhalf);
-  if(!animating&&!audioActive){previewRender();clearTimeout(wheelT);wheelT=setTimeout(()=>doRender({force:true}),160);}
-},{passive:false});
-canvas.addEventListener('dblclick',()=>{view={cx:0,cy:0,zoom:1};doRender({force:true});statusEl.textContent='View reset';});
-canvas.addEventListener('click',()=>{
-  if(animating||audioActive||breedMode||morphMode||morphActive||dragMoved)return;
-  textWord='';
-  setSlider('s0','v0',Math.random()*6-3);
-  setSlider('s1','v1',Math.random()*6-3);
-  setSlider('s2','v2',Math.random()*6-3);
-  doRender();
-});
-
-// ── Touch: one-finger pan, two-finger pinch zoom ─────────────────────────────
-let touchMode=null,pinchStart=0,pinchZoom0=1,tLastX=0,tLastY=0;
-canvas.addEventListener('touchstart',e=>{
-  if(e.touches.length===1){touchMode='pan';dragMoved=false;tLastX=e.touches[0].clientX;tLastY=e.touches[0].clientY;}
-  else if(e.touches.length===2){touchMode='pinch';dragMoved=true;
-    const dx=e.touches[0].clientX-e.touches[1].clientX,dy=e.touches[0].clientY-e.touches[1].clientY;
-    pinchStart=Math.hypot(dx,dy);pinchZoom0=view.zoom;}
-},{passive:false});
-canvas.addEventListener('touchmove',e=>{
-  e.preventDefault();
-  if(touchMode==='pan'&&e.touches.length===1){
-    const t=e.touches[0],dx=t.clientX-tLastX,dy=t.clientY-tLastY;
-    if(Math.abs(dx)+Math.abs(dy)>2)dragMoved=true;
-    tLastX=t.clientX;tLastY=t.clientY;
-    const half=1/view.zoom;
-    view.cx-=dx/canvas.clientWidth*2*half;view.cy-=dy/canvas.clientHeight*2*half;
-    if(!animating&&!audioActive&&!morphActive)previewRender();
-  }else if(touchMode==='pinch'&&e.touches.length===2&&pinchStart>0){
-    const dx=e.touches[0].clientX-e.touches[1].clientX,dy=e.touches[0].clientY-e.touches[1].clientY;
-    view.zoom=Math.max(0.15,Math.min(pinchZoom0*(Math.hypot(dx,dy)/pinchStart),400));
-    if(!animating&&!audioActive&&!morphActive)previewRender();
+      if(mode==='hands'&&gestureModel) handleHands(gestureModel.recognizeForVideo(cam,performance.now()));
+      else if(mode==='body'&&poseModel) handleBody(poseModel.detectForVideo(cam,performance.now()));
+    }catch(e){}
+    const idle=performance.now()-lastSeenTime;
+    if(!attract && idle>15000) enterAttract();
+    else if(attract && idle<900) exitAttract();
+    if(attract) drawAttractFrame();
   }
-},{passive:false});
-canvas.addEventListener('touchend',e=>{
-  if(e.touches.length===0){
-    if(touchMode&&dragMoved&&!animating&&!audioActive&&!morphActive)doRender({force:true});
-    touchMode=null;
-  }
-},{passive:false});
-
-// ── About toggle ─────────────────────────────────────────────────────────────
-document.getElementById('aboutToggle').addEventListener('click',()=>{
-  const body=document.getElementById('aboutBody'),arrow=document.getElementById('aboutArrow');
-  body.classList.toggle('open');arrow.textContent=body.classList.contains('open')?'↓':'›';
-});
-
-// ── Onboarding tip (shown once) ──────────────────────────────────────────────
-function maybeShowTip(){
-  try{if(localStorage.getItem('nc_seen'))return;}catch(e){}
-  const t=document.getElementById('tip');t.classList.add('show');
-  const hide=()=>{t.classList.remove('show');try{localStorage.setItem('nc_seen','1');}catch(e){}};
-  document.getElementById('tipClose').addEventListener('click',hide);
-  setTimeout(hide,10000);
+  requestAnimationFrame(loop);
 }
 
-// ── Init ─────────────────────────────────────────────────────────────────────
-async function init(){
-  statusEl.textContent='Building CPPN…';
+// ── Ember particles (live glowing sparks on the fx layer) ────────────────────
+function spawnEmbers(x,y,col,sz){for(let k=0;k<3;k++)particles.push({x,y,vx:(Math.random()-0.5)*0.7,vy:-Math.random()*0.9-0.15,life:1,col,sz:Math.random()*sz*0.35+2});if(particles.length>1400)particles=particles.slice(particles.length-1400);}
+function updateParticles(){fctx.clearRect(0,0,fx.width,fx.height);if(!particles.length)return;fctx.save();fctx.globalCompositeOperation='lighter';for(let i=particles.length-1;i>=0;i--){const p=particles[i];p.x+=p.vx;p.y+=p.vy;p.vy+=0.006;p.vx*=0.99;p.life-=0.013;if(p.life<=0){particles.splice(i,1);continue;}fctx.globalAlpha=Math.max(0,p.life);fctx.fillStyle=p.col;fctx.shadowColor=p.col;fctx.shadowBlur=p.sz*2;fctx.beginPath();fctx.arc(p.x,p.y,p.sz*p.life,0,7);fctx.fill();}fctx.globalAlpha=1;fctx.restore();}
+
+// ── Attract / idle mode (auto mandala when nobody's using it) ─────────────────
+function enterAttract(){attract=true;const a=document.createElement('canvas');a.width=paint.width;a.height=paint.height;a.getContext('2d').drawImage(paint,0,0);
+  savedAttract={symmetry,brush,rainbow,fade,art:a};symmetry='6';brush='neon';rainbow=true;fade=true;pctx.clearRect(0,0,paint.width,paint.height);attractPen={};attractT=0;statusEl.textContent='✨ Idle demo — raise your hand to paint';}
+function exitAttract(){attract=false;if(!savedAttract)return;symmetry=savedAttract.symmetry;brush=savedAttract.brush;rainbow=savedAttract.rainbow;fade=savedAttract.fade;pctx.clearRect(0,0,paint.width,paint.height);pctx.drawImage(savedAttract.art,0,0);savedAttract=null;refreshColorUI();statusEl.textContent=mode==='body'?'🕺 Raise a hand to paint':'✋ Pinch to paint';}
+function drawAttractFrame(){attractT+=0.03;const cx=paint.width/2,cy=paint.height/2,R=Math.min(cx,cy);const rr=R*(0.25+0.55*(0.5+0.5*Math.sin(attractT*0.21)));const x=cx+Math.cos(attractT)*rr,y=cy+Math.sin(attractT*1.4)*rr;if(attractPen.init)stroke(attractPen.x,attractPen.y,x,y,attractPen,1);attractPen.x=x;attractPen.y=y;attractPen.lt=performance.now();attractPen.init=true;
+  hctx.save();hctx.fillStyle='rgba(184,168,255,0.55)';hctx.font='600 15px system-ui,sans-serif';hctx.textAlign='center';hctx.fillText('✋ Raise your hand to paint',cx,paint.height-22);hctx.restore();}
+function handColor(hd){const name=(hd&&hd[0])?hd[0].categoryName:'Right';return name==='Left'?COLORS[0]:COLORS[4];}
+
+function handleHands(res){
+  if(res&&res.landmarks&&res.landmarks.length)lastSeenTime=performance.now();
+  if(attract)return;
+  const seen={};
+  if(res&&res.landmarks){
+    res.landmarks.forEach((hand,i)=>{
+      const id='h'+i; seen[id]=true;
+      const g=(res.gestures&&res.gestures[i]&&res.gestures[i][0])?res.gestures[i][0].categoryName:'None';
+      const pen=pens[id]||(pens[id]={});
+      // discrete gesture actions (debounced, triggered on entry)
+      const gs=gstate[id]||(gstate[id]={last:'None',frames:0});
+      if(g!==gs.last){gs.last=g;gs.frames=0;
+        if(g==='Thumb_Up')toggleView();
+        else if(!viewMode&&g==='Victory')nextColor();
+        else if(!viewMode&&g==='Thumb_Down')undo();
+      } else gs.frames++;
+      if(!viewMode&&g==='Closed_Fist'&&gs.frames===14&&Date.now()-lastClear>1500){clearCanvas('✊ Cleared');lastClear=Date.now();}
+      if(viewMode){pen.drawing=false;pen.fx=null;return;}   // 👍 clean view: paused, no overlays
+      const tip=px(hand[8]);
+      const colOv = twoHand ? handColor(res.handedness&&res.handedness[i]) : null;
+      if(g==='Open_Palm'){ if(!pen.erasing){pushUndo();pen.erasing=true;} const c=px(hand[9]); erase(c.x,c.y,size*4); drawCursor(c.x,c.y,'erase'); if(showSkel)drawHandSkel(hand); pen.drawing=false;pen.fx=null; return; }
+      pen.erasing=false;
+      const ref=dist(px(hand[0]),px(hand[9]));
+      const pinch=dist(px(hand[4]),tip)/(ref||1);
+      const drawing = pinch<0.45 && g!=='Closed_Fist';
+      if(showSkel)drawHandSkel(hand);
+      if(drawing){
+        if(!pen.drawing)pushUndo();
+        if(!pen.fx){pen.fx=new OneEuro();pen.fy=new OneEuro();}
+        const t=performance.now(), sx=pen.fx.f(tip.x,t), sy=pen.fy.f(tip.y,t);
+        if(pen.drawing)stroke(pen.lx,pen.ly,sx,sy,pen,depthScale(hand),colOv);
+        pen.drawing=true;pen.lx=sx;pen.ly=sy;pen.lt=t;
+        drawCursor(sx,sy,'draw',colOv);
+      } else { pen.drawing=false;pen.fx=null;pen.fy=null; drawCursor(tip.x,tip.y,'idle',colOv); }
+    });
+  }
+  Object.keys(pens).forEach(id=>{if(id[0]==='h'&&!seen[id]){pens[id].drawing=false;pens[id].fx=null;pens[id].erasing=false;}});
+}
+
+function handleBody(res){
+  if(res&&res.landmarks&&res.landmarks.length)lastSeenTime=performance.now();
+  if(attract)return;
+  if(viewMode)return;   // 👁 clean view: paused, no overlays
+  const seen={};
+  if(res&&res.landmarks){
+    res.landmarks.forEach((pose,pi)=>{
+      if(showSkel)drawPoseSkel(pose);
+      [['pL'+pi,15,11],['pR'+pi,16,12]].forEach(([id,wIdx,shIdx])=>{
+        const w=pose[wIdx], sh=pose[shIdx];
+        if(!w||(w.visibility!==undefined&&w.visibility<0.35))return;
+        const active = sh ? (w.y < sh.y) : true;      // wrist above shoulder = pen down
+        const p=px(w); const pen=pens[id]||(pens[id]={});
+        const colOv = twoHand ? (wIdx===15?COLORS[0]:COLORS[4]) : null;
+        if(!active){pen.drawing=false;pen.fx=null;drawCursor(p.x,p.y,'idle',colOv);return;}
+        seen[id]=true;
+        if(!pen.drawing)pushUndo();
+        if(!pen.fx){pen.fx=new OneEuro();pen.fy=new OneEuro();}
+        const t=performance.now(), sx=pen.fx.f(p.x,t), sy=pen.fy.f(p.y,t);
+        if(pen.drawing)stroke(pen.lx,pen.ly,sx,sy,pen,1,colOv);
+        pen.drawing=true;pen.lx=sx;pen.ly=sy;pen.lt=t;
+        drawCursor(sx,sy,'draw',colOv);
+      });
+    });
+  }
+  Object.keys(pens).forEach(id=>{if(id[0]==='p'&&!seen[id]){pens[id].drawing=false;pens[id].fx=null;}});
+}
+
+// ── Symmetry transforms ──────────────────────────────────────────────────────
+function symTransforms(){
+  const cx=paint.width/2, cy=paint.height/2, list=[];
+  if(symmetry==='off'){list.push((x,y)=>[x,y]);return list;}
+  if(symmetry==='mirror'){list.push((x,y)=>[x,y]);list.push((x,y)=>[paint.width-x,y]);return list;}
+  const N=parseInt(symmetry);
+  for(let k=0;k<N;k++){const ang=k*2*Math.PI/N,c=Math.cos(ang),s=Math.sin(ang);
+    list.push((x,y)=>{const dx=x-cx,dy=y-cy;return [cx+dx*c-dy*s, cy+dx*s+dy*c];});
+    list.push((x,y)=>{const dx=x-cx,dy=-(y-cy);return [cx+dx*c-dy*s, cy+dx*s+dy*c];}); // mirrored wedge → kaleidoscope
+  }
+  return list;
+}
+
+// ── Stroke (applies color/depth/audio + symmetry, then draws the brush) ───────
+function stroke(x0,y0,x1,y1,pen,dScale,colOv){
+  const now=performance.now(), d=Math.hypot(x1-x0,y1-y0);
+  const speed=d/Math.max(1,now-(pen.lt||now));
+  if(rainbow) hue=(hue+d*0.25)%360;
+  const col=colOv||curColor();
+  let sz=size*(dScale||1)*(audioActive?(1+audioLevel*1.3):1);
+  for(const T of symTransforms()){ const [ax,ay]=T(x0,y0),[bx,by]=T(x1,y1); drawSeg(col,sz,speed,ax,ay,bx,by); }
+}
+function seg(x0,y0,x1,y1){pctx.beginPath();pctx.moveTo(x0,y0);pctx.lineTo(x1,y1);pctx.stroke();}
+function drawSeg(col,sz,speed,x0,y0,x1,y1){
+  pctx.save();pctx.lineCap='round';pctx.lineJoin='round';
+  if(bloom){pctx.globalCompositeOperation='lighter';pctx.strokeStyle=col;pctx.shadowColor=col;pctx.shadowBlur=sz*3;pctx.globalAlpha=0.22;pctx.lineWidth=sz*1.3;seg(x0,y0,x1,y1);pctx.globalAlpha=1;}  // bloom halo
+  if(brush==='neon'){pctx.globalCompositeOperation='lighter';pctx.shadowColor=col;pctx.shadowBlur=sz*1.4;pctx.strokeStyle=col;pctx.lineWidth=sz*0.55;seg(x0,y0,x1,y1);
+    pctx.shadowBlur=0;pctx.strokeStyle='rgba(255,255,255,0.9)';pctx.lineWidth=Math.max(1,sz*0.18);seg(x0,y0,x1,y1);}
+  else if(brush==='ribbon'){pctx.globalCompositeOperation='source-over';const w=Math.max(2,sz*(1.4-Math.min(1,speed*0.7)));pctx.strokeStyle=col;pctx.lineWidth=w;pctx.shadowColor=col;pctx.shadowBlur=sz*0.5;seg(x0,y0,x1,y1);}
+  else if(brush==='comet'){pctx.globalCompositeOperation='lighter';const w=Math.max(1.5,sz*Math.min(1.5,0.3+speed*1.2));pctx.strokeStyle=col;pctx.shadowColor=col;pctx.shadowBlur=sz*1.6;pctx.lineWidth=w;seg(x0,y0,x1,y1);}
+  else if(brush==='spray'){pctx.globalCompositeOperation='lighter';const n=Math.round(sz*1.2);for(let k=0;k<n;k++){const a=Math.random()*6.283,r=Math.random()*sz,t=Math.random();const xx=x0+(x1-x0)*t+Math.cos(a)*r,yy=y0+(y1-y0)*t+Math.sin(a)*r;pctx.fillStyle=col;pctx.globalAlpha=0.5*(1-r/sz);pctx.beginPath();pctx.arc(xx,yy,Math.random()*1.6+0.4,0,7);pctx.fill();}pctx.globalAlpha=1;}
+  else if(brush==='embers'){pctx.globalCompositeOperation='lighter';pctx.fillStyle=col;pctx.shadowColor=col;pctx.shadowBlur=sz;pctx.globalAlpha=0.32;pctx.beginPath();pctx.arc(x1,y1,Math.max(1.5,sz*0.18),0,7);pctx.fill();pctx.globalAlpha=1;spawnEmbers(x1,y1,col,sz);}
+  pctx.restore();
+}
+function erase(x,y,r){pctx.save();pctx.globalCompositeOperation='destination-out';const g=pctx.createRadialGradient(x,y,0,x,y,r);g.addColorStop(0,'rgba(0,0,0,1)');g.addColorStop(1,'rgba(0,0,0,0)');pctx.fillStyle=g;pctx.beginPath();pctx.arc(x,y,r,0,7);pctx.fill();pctx.restore();}
+
+// ── HUD ──────────────────────────────────────────────────────────────────────
+function drawCursor(x,y,state,col){
+  const c=col||curColor();
+  hctx.save();
+  if(state==='erase'){hctx.setLineDash([5,5]);hctx.strokeStyle='rgba(255,120,120,0.9)';hctx.lineWidth=2;hctx.beginPath();hctx.arc(x,y,size*4,0,7);hctx.stroke();}
+  else{const drawing=state==='draw';hctx.beginPath();hctx.arc(x,y,drawing?size*0.55+6:10,0,7);hctx.strokeStyle=drawing?c:'rgba(255,255,255,0.6)';hctx.lineWidth=drawing?3:2;hctx.shadowColor=c;hctx.shadowBlur=drawing?14:0;hctx.stroke();}
+  hctx.restore();
+}
+function drawHandSkel(hand){hctx.strokeStyle='rgba(160,140,240,0.35)';hctx.lineWidth=2;HAND_CONN.forEach(([a,b])=>{const p=px(hand[a]),q=px(hand[b]);hctx.beginPath();hctx.moveTo(p.x,p.y);hctx.lineTo(q.x,q.y);hctx.stroke();});hctx.fillStyle='rgba(184,168,255,0.5)';for(let k=0;k<hand.length;k++){const p=px(hand[k]);hctx.beginPath();hctx.arc(p.x,p.y,2.5,0,7);hctx.fill();}}
+function drawPoseSkel(pose){hctx.strokeStyle='rgba(160,140,240,0.35)';hctx.lineWidth=3;POSE_CONN.forEach(([a,b])=>{if(!pose[a]||!pose[b])return;const p=px(pose[a]),q=px(pose[b]);hctx.beginPath();hctx.moveTo(p.x,p.y);hctx.lineTo(q.x,q.y);hctx.stroke();});}
+
+// ── Audio-reactive glow ──────────────────────────────────────────────────────
+async function toggleAudio(){
+  const el=document.getElementById('audioToggle');
+  if(audioActive){audioActive=false;if(analyser)analyser.disconnect();if(audioCtx)audioCtx.close();if(audioStream)audioStream.getTracks().forEach(t=>t.stop());audioCtx=analyser=audioData=audioStream=null;audioLevel=0;el.classList.remove('audio-on');el.textContent='🎙 Audio glow: off';return;}
+  try{audioStream=await navigator.mediaDevices.getUserMedia({audio:true});audioCtx=new(window.AudioContext||window.webkitAudioContext)();analyser=audioCtx.createAnalyser();analyser.fftSize=256;analyser.smoothingTimeConstant=0.7;audioData=new Uint8Array(analyser.frequencyBinCount);audioCtx.createMediaStreamSource(audioStream).connect(analyser);audioActive=true;el.classList.add('audio-on');el.textContent='🎙 Audio glow: on';}
+  catch(e){statusEl.textContent='Mic denied';}
+}
+function readAudio(){if(!analyser)return;analyser.getByteFrequencyData(audioData);let s=0;for(let i=0;i<audioData.length;i++)s+=audioData[i];audioLevel=Math.min(1,(s/audioData.length)/110);}
+
+// ── Record (WebM of the painting on dark bg) ─────────────────────────────────
+function toggleRecord(){
+  const btn=document.getElementById('recBtn');
+  if(recording){if(recTimeout)clearTimeout(recTimeout);if(recorder&&recorder.state!=='inactive')recorder.stop();return;}
+  if(!paint.captureStream){statusEl.textContent='Recording not supported here';return;}
   try{
-    await tf.ready();
-    buildGallery();
-    if(!loadFromHash()){applySeed(PRESETS[0].seed,false);setPalette(PRESETS[0].pal);setSymmetry(PRESETS[0].sym);}
-    buildThumbsUI();
-    statusEl.textContent='First render…';
-    doRender({force:true});
-    maybeShowTip();
-  }catch(e){statusEl.textContent='Error: '+e.message;console.error(e);}
+    const comp=document.createElement('canvas');comp.width=paint.width;comp.height=paint.height;const cc=comp.getContext('2d');let raf;
+    const draw=()=>{paintBg(cc,comp.width,comp.height);cc.drawImage(paint,0,0);cc.drawImage(fx,0,0);raf=requestAnimationFrame(draw);};draw();
+    const s=comp.captureStream(30);recChunks=[];
+    try{recorder=new MediaRecorder(s,{mimeType:'video/webm;codecs=vp9'});}catch(e){recorder=new MediaRecorder(s);}
+    recorder.ondataavailable=e=>{if(e.data&&e.data.size)recChunks.push(e.data);};
+    recorder.onstop=()=>{cancelAnimationFrame(raf);const blob=new Blob(recChunks,{type:recorder.mimeType||'video/webm'});const a=document.createElement('a');a.download='neural-canvas-'+Date.now()+'.webm';a.href=URL.createObjectURL(blob);a.click();setTimeout(()=>URL.revokeObjectURL(a.href),1000);recording=false;btn.classList.remove('rec-on');btn.textContent='⏺ Record';statusEl.textContent='⬇ Video saved';};
+    recorder.start();recording=true;btn.classList.add('rec-on');btn.textContent='⏹ Stop';statusEl.textContent='⏺ Recording 15s…';
+    recTimeout=setTimeout(()=>{if(recording&&recorder.state!=='inactive')recorder.stop();},15000);
+  }catch(e){statusEl.textContent='Record failed: '+e.message;}
 }
-init();
-})();
+
+refreshColorUI(); resize();
+statusEl.textContent='Ready — press “Start camera”.';
 </script>
 </body>
 </html>

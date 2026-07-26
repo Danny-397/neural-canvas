@@ -1,49 +1,68 @@
 # Neural Canvas
 
-**Evolve a neural network into art.** — Hack the Arts 2026 submission
+**Paint glowing light in mid-air — with your bare hands.** *Hack the Arts 2026 submission.*
 
-Every image in Neural Canvas *is* a neural network. A **Compositional Pattern Producing
-Network (CPPN)** maps each pixel's coordinates `(x, y, radius)` plus a latent vector
-`(α, β, γ)` directly to an RGB color. There is no image file, no dataset, no brush — the
-picture doesn't exist until the network computes it, pixel by pixel. **This art cannot
-exist without the network.**
+Neural Canvas turns your webcam into a paintbrush. A neural network watches your hands
+in real time and turns your motion into living, glowing art. There is **no brush, no
+mouse, no touchscreen** — you pinch your fingers together in the air and light follows
+your fingertip. **This is art that cannot exist without the technology that perceives it.**
 
-It runs entirely in your browser with [TensorFlow.js](https://www.tensorflow.org/js) —
-no server, no API.
+It runs **entirely in your browser** — the camera feed never leaves your device.
 
 ▶ **Live:** https://danny-397.github.io/neural-canvas/
 
-## What makes it art you evolve, not just generate
+---
 
-- **🧬 Breed** — pick any two artworks from your history and open a **generation grid** of
-  offspring (weight crossover + mutation). Click the one you like and it breeds a new
-  generation from there — over and over. Human-guided neuro-evolution in the lineage of
-  Picbreeder and NEAT. *Your taste is the fitness function.*
-- **⚛ Mutate** — perturb the current network's weights to explore nearby variations.
-- **✦ Name Art** — type any word and it's hashed into a seed, so your name always makes the
-  same piece. Algorithmic authorship: the network turns language into a picture.
-- **♾ Infinite zoom & pan** — because the image is a continuous *function* of coordinates,
-  you can zoom in forever and new detail keeps emerging. There is no underlying resolution —
-  so **Export HD** renders it at any size (2048×2048 and beyond).
-- **🔷 Symmetry** — fold the coordinate field into mirror and kaleidoscope patterns.
-- **🎙 Audio React** — your microphone drives the latent vector (bass → α, mids → β,
-  treble → γ).
-- **⏺ Record** — export the living animation as a video.
-- **🔗 Share** — the exact artwork is encoded into a reproducible seed in the URL, with a
-  scannable **QR code**; anyone who opens the link sees the same piece.
-- **🖼 Gallery** — a set of curated showpieces to start from.
+## How to use it
 
-## How the network works
+1. Open the site and press **Start camera** (allow camera access).
+2. **🤏 Pinch** your thumb and index finger together — light paints from your fingertip.
+3. Move your hand to draw. Unpinch to lift the "pen." Works with **both hands at once.**
 
-A compact CPPN with **sinusoidal and Gaussian activations** (the
-[SIREN](https://www.vincentsitzmann.com/siren/) idea). Periodic activations — not plain
-`tanh` — are what give the output its crisp, intricate structure; a deep all-`tanh` stack
-collapses to a flat mean, while a shallow sinusoidal network preserves detail. Every
-artwork is generated from a reproducible integer **seed**, so the same seed always
-rebuilds the same network.
+### Hand gestures
+
+| Gesture | Action |
+|---|---|
+| 🤏 Pinch | Paint |
+| ✋ Open palm | Erase |
+| ✌️ Victory | Next color |
+| 👎 Thumb down | Undo |
+| 👍 Thumb up | Clean view (hide the UI to admire / screenshot) |
+| ✊ Fist (hold) | Clear the canvas |
+
+## Features
+
+- **Live hand tracking** — Google's MediaPipe locates 21 3D points on each hand ~60× a
+  second, fully on-device.
+- **Brushes** — Neon glow, Ribbon, Spray, Comet, and live **Embers** that drift and fade.
+- **Kaleidoscope symmetry** — mirror or 4/6/8-fold folding turns a single stroke into a
+  living mandala.
+- **Full-body mode** — swaps in a pose model so you can paint with your whole body.
+- **Two-hand colors, rainbow, adjustable size, backdrops, and bloom.**
+- **Attract mode** — left idle, the canvas paints its own drifting mandala to draw a crowd,
+  then hands control back the moment someone raises a hand.
+- **Audio-reactive glow, undo, fullscreen, Save PNG, and Record WebM.**
+
+## How it works
+
+Every webcam frame is passed to a pre-trained **MediaPipe** gesture/hand model
+([tasks-vision](https://developers.google.com/mediapipe)), which returns the 3D position of
+each hand joint and a classified gesture. The app reads those points — your index fingertip
+is the brush, a pinch is the pen — and a **one-euro filter** smooths the tracking so lines
+stay clean. Symmetry mirrors every stroke into a live kaleidoscope. The machine doesn't make
+the art; **you** do. But you couldn't paint in mid-air unless a neural network perceived
+your motion in real time.
 
 ## Tech
 
-Pure HTML + TensorFlow.js. Open `index.html` — that's the whole app.
+Pure HTML/CSS/JS in a single file, no build step and no server. MediaPipe Tasks Vision
+(WebAssembly + GPU) loaded from a CDN; rendering via the Canvas 2D API.
+
+```
+index.html   → the app
+cppn.html    → an earlier experiment: an abstract generative-art tool (a CPPN/SIREN
+               network that computes an image directly from pixel coordinates). Kept for
+               reference; the hand-painting app above is the actual submission.
+```
 
 Created for **Hack the Arts 2026** — *art that wouldn't exist without technology.*

@@ -7,90 +7,89 @@
 ---
 
 ## Inspiration
-Most "AI art" is really a photo of a dataset — pixels sampled from millions of existing
-images. We wanted the opposite: art with **no pixels and no dataset at all**, where the
-artwork *is* the neural network. A Compositional Pattern Producing Network (CPPN) computes
-a color for every coordinate on demand, so the picture literally does not exist until the
-network imagines it. That's the purest possible answer to "art that wouldn't exist without
-technology."
+We wanted art you make with your **whole body**, not a mouse. What if the paintbrush was
+your bare hand, moving through empty air? That's only possible if a machine can *perceive*
+you — so the technology isn't a filter bolted on top of the art, it's the only reason the
+art can exist at all. That's the purest read of the theme: paint in mid-air, and let a
+neural network be the thing that sees your hand.
 
 ## What it does
-Neural Canvas turns a small neural network into an interactive canvas you **evolve**:
+Neural Canvas turns your webcam into a paintbrush.
 
-- **Every image is a network.** A CPPN maps `(x, y, radius, α, β, γ) → (R, G, B)`.
-- **🧬 Breed** — pick two artworks; get a *generation grid* of nine offspring (weight
-  crossover). Click one to breed a new generation from it, again and again — interactive
-  neuro-evolution in the lineage of Picbreeder/NEAT. Your taste is the fitness function.
-- **🌀 Morph** — smoothly interpolate the network's weights between two artworks; a
-  hypnotic transition you can record.
-- **⚛ Mutate** — perturb the weights to explore nearby variations.
-- **✦ Name Art** — type any word; it's hashed into a seed, so your name always makes the
-  same piece. Language → picture.
-- **♾ Infinite zoom** — the image is a *function*, not pixels, so you can zoom forever and
-  **Export HD** at any resolution.
-- **🔷 Symmetry**, **🎙 Audio React** (mic drives the latent vector), **⏺ Record** (WebM),
-  and **🔗 Share** (reproducible seed in the URL + scannable QR).
+- **Pinch to paint.** A neural network tracks 21 points on each hand in real time; pinch
+  your thumb and index finger and glowing light follows your fingertip through the air.
+- **Gestures, not menus.** ✋ open palm erases, ✌️ changes color, 👎 undoes, ✊ clears,
+  👍 hides the UI for a clean view. Both hands work at once.
+- **Kaleidoscope symmetry.** Mirror or 4/6/8-fold folding turns one gesture into a living
+  mandala.
+- **Brushes** — neon glow, ribbon, comet, spray, and live embers that drift up and fade.
+- **Full-body mode** — a pose model lets you paint with your whole body, not just hands.
+- **Attract mode** — left alone, the canvas paints its own drifting mandala to pull a
+  crowd, then instantly hands control back when someone raises a hand.
+- Plus rainbow/two-hand colors, adjustable size, backdrops, bloom, audio-reactive glow,
+  undo, fullscreen, **Save PNG**, and **Record WebM**.
 
 ## How we built it
-Pure HTML + **TensorFlow.js**, ~700 lines, no server or API — the network runs entirely
-in the browser. The network is a shallow CPPN with **sinusoidal + Gaussian activations**
-(the SIREN idea). Every artwork is generated from a reproducible integer **seed** via
-seeded weight initialization, which is what makes sharing, Name Art, and the preset gallery
-possible. Breeding and morphing operate directly on the flat weight vectors (crossover,
-mutation, and linear interpolation).
+A single HTML file — no build step, no server, no data leaving the device. Each webcam
+frame is fed to Google's **MediaPipe Tasks Vision** gesture/hand model (WebAssembly + GPU,
+loaded from a CDN), which returns 3D hand-joint positions and a classified gesture ~60× a
+second. We read the index fingertip as the brush and a pinch as the pen, smooth the raw
+tracking with a **one-euro filter** to kill jitter, and render glowing strokes with the
+Canvas 2D API (additive blending + shadow-blur glow). Symmetry is a set of coordinate
+transforms applied to every stroke; the ember brush drives a small particle system on its
+own layer.
 
 ## Challenges we ran into
-Our first version used a deep, 9-layer, all-`tanh` network — and every image came out a
-flat, washed-out blob. We discovered *why*: signal through many random `tanh` layers
-**de-correlates and collapses to a constant mean**, so the output stopped depending on the
-input coordinates. The fix was principled, not cosmetic: go **shallow (3 layers)** and use
-**periodic activations (sin/gauss)**, which preserve high-frequency structure. That single
-change is the difference between grey mush and crisp, swirling, marbled art.
+Raw hand-tracking is jittery — a fingertip position wobbles several pixels per frame, which
+makes ugly, shaky lines. The fix was a **one-euro filter**, which adapts its smoothing to
+how fast you're moving: heavy smoothing when your hand is still (clean lines), light
+smoothing when you move fast (no lag). Tuning the **pinch threshold** was the other hard
+part — it has to work whether your hand is near or far from the camera, so we measure the
+pinch distance *relative to the size of your hand* rather than in absolute pixels.
 
 ## Accomplishments we're proud of
-- It's genuinely *evolutionary*, not just a randomizer — the breed grid is real
-  human-in-the-loop neuro-evolution.
-- The SIREN insight — diagnosing and fixing the deep-network collapse.
-- Everything is reproducible and shareable from a tiny seed.
+- It feels like magic the first time light follows your finger through the air.
+- Everything is gesture-driven — you never touch the keyboard once the camera is on.
+- It's a genuine crowd-pleaser: attract mode + kaleidoscope makes a great live booth.
+- 100% on-device and private; nothing is uploaded.
 
 ## What we learned
-How CPPNs and SIREN networks turn coordinates into imagery, why depth hurts random-weight
-generators, and how to build a fast, fully client-side ML art tool with TensorFlow.js.
+How real-time pose/hand estimation works in the browser, why raw landmark data needs
+adaptive filtering, and how to design an interaction that's legible to a first-time user
+with zero instructions (gesture key + on-screen cursor + status hints).
 
 ## What's next
-Text-prompt guidance, a WebGL render path for 60fps, and a community gallery of shared
-seeds.
+Multiplayer (two people painting the same canvas over the network), foot/leg tracking for
+full-body dance painting, and a gallery of recorded pieces.
 
 ---
 
 ## 🎤 60-second demo script
-1. **(0:00) Hook.** "Everything you're about to see *is* a neural network. There are no
-   pixels, no dataset — the image doesn't exist until the network computes it." *(Gesture
-   at the live nebula.)*
-2. **(0:10) Make it personal.** Type a judge's name → **Generate**. "Your name, turned
-   into a one-of-a-kind neural artwork — and it's reproducible: the same name always makes
-   this exact piece."
-3. **(0:22) Evolution.** Hit **Breed**, pick two from history → the generation grid opens.
-   Click a favorite. "This is interactive evolution — I'm the fitness function, steering
-   the network through the space of everything it could paint."
-4. **(0:38) Theme payoff.** Scroll to **zoom in**. "It's a continuous function, so there's
-   infinite detail — no resolution, no original file. **Export HD** proves it renders at
-   any size."
-5. **(0:50) Share.** Hit **Share** → QR appears. "Scan this and you'll open the exact same
-   artwork. This piece cannot exist without the network — that's the whole point."
+1. **(0:00) Hook.** Walk up while **attract mode** is painting itself. "This whole thing is
+   painted with your hands — watch." Raise your hand; the demo hands you control.
+2. **(0:10) Paint.** Pinch and draw a glowing line in the air. "There's no mouse and no
+   touchscreen. A neural network is tracking my hand 60 times a second — the light just
+   follows my finger."
+3. **(0:22) Gestures.** ✌️ change color, ✋ erase, 👎 undo. "Every control is a gesture —
+   I never touch the keyboard."
+4. **(0:36) Payoff.** Turn on **6-fold symmetry** and sweep both hands. "One motion becomes
+   a living mandala." Add **bloom** / **embers** for the wow moment.
+5. **(0:50) Theme.** 👍 for a clean view of the finished piece. "This art literally cannot
+   exist without the technology — because the technology is the only thing that can *see*
+   me paint."
 
-## ✅ Pre-demo test checklist (run on your actual demo laptop + a phone)
-- [ ] Page loads; landing art renders.
-- [ ] Gallery presets, Name Art, palette, symmetry all work.
-- [ ] Breed grid: select 2 → grid → click tile → Use selected.
-- [ ] Morph: select 2 → animates; press Record to capture a clip.
-- [ ] Zoom/pan (scroll + drag on laptop; pinch + drag on phone).
-- [ ] Export HD — confirm it finishes in a couple seconds (GPU) and downloads.
-- [ ] Audio React — mic permission + visible response.
-- [ ] Share — QR renders, "Copy link" works, opening the link reproduces the piece.
+## ✅ Pre-demo test checklist (run on your actual demo laptop + good lighting)
+- [ ] Page loads over **https**; camera permission granted; landing overlay dismisses.
+- [ ] Pinch paints; unpinch lifts; both hands work.
+- [ ] Gestures: ✋ erase, ✌️ color, 👎 undo, 👍 view, ✊ hold-to-clear.
+- [ ] Brushes (neon/ribbon/spray/comet/embers) and size slider all visibly change strokes.
+- [ ] Symmetry 4/6/8-fold + mirror; bloom; backdrops.
+- [ ] Body mode: raise a hand above your shoulder to paint.
+- [ ] Attract mode kicks in after ~15s idle and releases when you raise a hand.
+- [ ] Save PNG downloads; Record produces a WebM.
+- [ ] Fullscreen for presenting.
 
 ## ✨ Framing lines (for the pitch / booth sign)
-- "Every artwork is a neural network. You're not editing an image — you're steering a
-  function through the space of everything it could ever paint."
-- "No brush, no dataset, no pixels. The art doesn't exist until the network is asked to
-  imagine it — and no two evolutions ever land in the same place."
+- "No brush. No mouse. No touchscreen. Just your hands and light."
+- "The technology isn't on top of the art — it's the only reason the art can exist. It's
+  the thing that can *see* you paint."
