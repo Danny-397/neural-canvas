@@ -113,6 +113,7 @@ input[type=range]::-webkit-slider-thumb { -webkit-appearance:none; width:14px; h
     <button class="btn" id="clearBtn">🗑 Clear</button>
     <button class="btn" id="saveBtn">↓ Save PNG</button>
     <button class="btn" id="recBtn">⏺ Record</button>
+    <button class="btn" id="stopCamBtn" style="display:none">⏹ Stop camera</button>
   </div>
 
   <div class="status" id="status">Load the model to begin…</div>
@@ -138,7 +139,7 @@ let brush = 'neon';
 let size = 14;
 let mirror = true, fade = false, showSkel = true, showCam = true;
 
-let landmarker = null, running = false, lastVideoTime = -1;
+let landmarker = null, running = false, lastVideoTime = -1, stream = null;
 // per-hand pen state: { drawing, lastX, lastY, lastT }
 const pens = {};
 let recorder = null, recChunks = [], recording = false, recTimeout = null;
@@ -196,32 +197,54 @@ function resize(){
 new ResizeObserver(resize).observe(paint);
 
 // ── Camera + model ───────────────────────────────────────────────────────────
-document.getElementById('startBtn').addEventListener('click',start);
-async function start(){
+document.getElementById('startBtn').addEventListener('click',startCamera);
+document.getElementById('stopCamBtn').addEventListener('click',stopCamera);
+async function startCamera(){
+  const startBtn=document.getElementById('startBtn');
   try{
     ovTitle.textContent='Loading…';ovText.textContent='Requesting camera and downloading the hand-tracking model (a few MB, first time only).';
-    document.getElementById('startBtn').style.display='none';
+    startBtn.style.display='none';
     statusEl.textContent='Requesting camera…';
-    const stream=await navigator.mediaDevices.getUserMedia({video:{width:960,height:720,facingMode:'user'},audio:false});
+    stream=await navigator.mediaDevices.getUserMedia({video:{width:960,height:720,facingMode:'user'},audio:false});
     cam.srcObject=stream;
     await new Promise(res=>{cam.onloadedmetadata=()=>{cam.play();res();};});
     resize();
-    statusEl.textContent='Loading model…';
-    const fileset=await FilesetResolver.forVisionTasks(`https://cdn.jsdelivr.net/npm/@mediapipe/tasks-vision@${VER}/wasm`);
-    landmarker=await HandLandmarker.createFromOptions(fileset,{
-      baseOptions:{modelAssetPath:'https://storage.googleapis.com/mediapipe-models/hand_landmarker/hand_landmarker/float16/1/hand_landmarker.task',delegate:'GPU'},
-      runningMode:'VIDEO', numHands:2
-    });
+    if(!landmarker){                                   // build the model once, reuse on resume
+      statusEl.textContent='Loading model…';
+      const fileset=await FilesetResolver.forVisionTasks(`https://cdn.jsdelivr.net/npm/@mediapipe/tasks-vision@${VER}/wasm`);
+      landmarker=await HandLandmarker.createFromOptions(fileset,{
+        baseOptions:{modelAssetPath:'https://storage.googleapis.com/mediapipe-models/hand_landmarker/hand_landmarker/float16/1/hand_landmarker.task',delegate:'GPU'},
+        runningMode:'VIDEO', numHands:2
+      });
+    }
     overlay.classList.add('hidden');
-    running=true;statusEl.textContent='✋ Pinch to paint';
+    running=true;lastVideoTime=-1;statusEl.textContent='✋ Pinch to paint';
+    document.getElementById('stopCamBtn').style.display='';
     requestAnimationFrame(loop);
   }catch(e){
     console.error(e);
     overlay.classList.remove('hidden');
     ovTitle.textContent='Couldn’t start';
     ovText.innerHTML='<span class="err">'+(e.name==='NotAllowedError'?'Camera permission was denied. Allow it and reload.':(e.message||e))+'</span>';
+    startBtn.style.display='';startBtn.textContent='✋ Retry';
     statusEl.textContent='Error';
   }
+}
+
+function stopCamera(){
+  if(!running && !stream) return;
+  running=false;
+  if(recording){ if(recTimeout)clearTimeout(recTimeout); if(recorder&&recorder.state!=='inactive')recorder.stop(); }
+  if(stream){ stream.getTracks().forEach(t=>t.stop()); stream=null; }   // releases the camera (light off)
+  cam.srcObject=null;
+  Object.keys(pens).forEach(id=>pens[id].drawing=false);
+  hctx.clearRect(0,0,hud.width,hud.height);
+  ovTitle.textContent='Camera off';
+  ovText.innerHTML='The camera is stopped — nothing is being captured. Your painting is safe; press resume to keep going, or Save it below.';
+  const b=document.getElementById('startBtn');b.style.display='';b.textContent='✋ Resume';
+  overlay.classList.remove('hidden');
+  document.getElementById('stopCamBtn').style.display='none';
+  statusEl.textContent='Camera off — not capturing';
 }
 
 // ── Landmarks helpers ────────────────────────────────────────────────────────
