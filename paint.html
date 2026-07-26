@@ -1,0 +1,344 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Neural Canvas — Paint With Your Hands</title>
+<link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><rect width='100' height='100' rx='22' fill='%23120a2e'/><circle cx='50' cy='50' r='27' fill='none' stroke='%238860f0' stroke-width='7'/><circle cx='50' cy='50' r='8' fill='%23b8a8ff'/></svg>">
+<style>
+* { box-sizing: border-box; margin: 0; padding: 0; }
+body {
+  background: #05050c; color: #e0e0f0;
+  font-family: -apple-system, 'Inter', system-ui, sans-serif;
+  min-height: 100vh; display: flex; flex-direction: column;
+  align-items: center; padding: 20px 14px 34px; gap: 16px;
+}
+header { text-align: center; }
+header h1 { font-size: 1.4rem; font-weight: 200; letter-spacing: 0.4em; text-transform: uppercase; color: #b8a8ff; }
+header p { font-size: 0.7rem; color: #55557a; margin-top: 5px; letter-spacing: 0.15em; text-transform: uppercase; }
+
+.stage {
+  position: relative; width: 960px; max-width: calc(100vw - 28px);
+  aspect-ratio: 4 / 3; border-radius: 12px; overflow: hidden;
+  background: #0a0a14; box-shadow: 0 0 80px rgba(100,60,255,0.16), 0 0 20px rgba(0,0,0,0.6);
+}
+.stage video, .stage canvas { position: absolute; inset: 0; width: 100%; height: 100%; }
+#cam { object-fit: cover; transform: scaleX(-1); filter: brightness(0.42) saturate(0.7); }
+#paint { z-index: 2; }
+#hud   { z-index: 3; pointer-events: none; }
+
+.overlay {
+  position: absolute; inset: 0; z-index: 5; display: flex; flex-direction: column;
+  align-items: center; justify-content: center; gap: 14px; text-align: center;
+  background: rgba(5,5,12,0.9); padding: 24px; transition: opacity 0.4s;
+}
+.overlay.hidden { opacity: 0; pointer-events: none; }
+.overlay h2 { font-weight: 300; letter-spacing: 0.12em; color: #b8a8ff; font-size: 1.1rem; }
+.overlay p { font-size: 0.85rem; color: #8080a8; max-width: 460px; line-height: 1.6; }
+.overlay .err { color: #ff8080; }
+
+.big-btn {
+  padding: 13px 26px; border-radius: 10px; border: 1px solid #4a28a0;
+  background: #1e0e4a; color: #b8a8ff; cursor: pointer; font-size: 0.9rem;
+  letter-spacing: 0.06em; transition: all 0.15s;
+}
+.big-btn:hover { background: #2a1060; border-color: #6040c0; }
+
+.controls { width: 960px; max-width: calc(100vw - 28px); display: flex; flex-direction: column; gap: 12px; }
+.row { display: flex; gap: 8px; align-items: center; flex-wrap: wrap; }
+.row .lbl { font-size: 0.62rem; color: #45456a; letter-spacing: 0.12em; text-transform: uppercase; min-width: 54px; }
+
+.swatch { width: 30px; height: 30px; border-radius: 50%; border: 2px solid transparent; cursor: pointer; transition: all 0.12s; }
+.swatch:hover { transform: scale(1.12); }
+.swatch.on { border-color: #fff; box-shadow: 0 0 12px currentColor; }
+
+.chip { padding: 5px 13px; border-radius: 20px; border: 1px solid #1e1e30; background: transparent; color: #55557a; cursor: pointer; font-size: 0.72rem; letter-spacing: 0.05em; transition: all 0.15s; }
+.chip:hover { border-color: #333348; color: #888; }
+.chip.on { border-color: #6040c0; color: #a090e8; background: rgba(96,64,192,0.14); }
+
+.btn { flex: 1; min-width: 88px; padding: 11px 6px; border-radius: 9px; border: 1px solid #181828; background: #0d0d1a; color: #6a6a90; cursor: pointer; font-size: 0.78rem; letter-spacing: 0.05em; transition: all 0.15s; text-align: center; }
+.btn:hover { border-color: #2e2e48; color: #b0b0d0; }
+.btn.rec-on { background: rgba(240,70,70,0.12); border-color: #f04646; color: #ff8080; }
+
+.status { font-size: 0.68rem; color: #38385a; text-align: center; letter-spacing: 0.06em; min-height: 15px; }
+.slider-row { display: flex; align-items: center; gap: 10px; }
+.slider-row .lbl { min-width: 54px; }
+input[type=range] { -webkit-appearance:none; appearance:none; flex:1; height:2px; background:linear-gradient(to right,#2a1a5e,#5a3aad); border-radius:2px; outline:none; }
+input[type=range]::-webkit-slider-thumb { -webkit-appearance:none; width:14px; height:14px; border-radius:50%; background:#8860f0; cursor:pointer; box-shadow:0 0 10px rgba(136,96,240,0.7); }
+</style>
+</head>
+<body>
+
+<header>
+  <h1>Neural Canvas</h1>
+  <p>Paint With Your Hands &middot; AI Motion Art</p>
+</header>
+
+<div class="stage" id="stage">
+  <video id="cam" autoplay playsinline muted></video>
+  <canvas id="paint"></canvas>
+  <canvas id="hud"></canvas>
+  <div class="overlay" id="overlay">
+    <h2 id="ovTitle">Paint with your hands</h2>
+    <p id="ovText">Allow camera access, then <strong>pinch your thumb &amp; index finger</strong> together to paint — move your hand to draw, open your hand to lift the pen. Works with both hands.</p>
+    <button class="big-btn" id="startBtn">✋ Start camera</button>
+  </div>
+</div>
+
+<div class="controls">
+  <div class="row" id="palette"><span class="lbl">Color</span></div>
+
+  <div class="row">
+    <span class="lbl">Brush</span>
+    <button class="chip brush on" data-b="neon">Neon glow</button>
+    <button class="chip brush" data-b="ribbon">Ribbon</button>
+    <button class="chip brush" data-b="spray">Spray</button>
+    <button class="chip brush" data-b="comet">Comet</button>
+  </div>
+
+  <div class="slider-row">
+    <span class="lbl">Size</span>
+    <input type="range" id="sizeSlider" min="2" max="40" step="1" value="14">
+    <span class="lbl" style="min-width:34px;color:#9080e0;text-align:right" id="sizeVal">14</span>
+  </div>
+
+  <div class="row">
+    <button class="chip" id="mirrorToggle">Mirror: on</button>
+    <button class="chip" id="fadeToggle">Fade trails: off</button>
+    <button class="chip" id="skelToggle">Show hand: on</button>
+    <button class="chip" id="camToggle">Camera: visible</button>
+  </div>
+
+  <div class="row">
+    <button class="btn" id="clearBtn">🗑 Clear</button>
+    <button class="btn" id="saveBtn">↓ Save PNG</button>
+    <button class="btn" id="recBtn">⏺ Record</button>
+  </div>
+
+  <div class="status" id="status">Load the model to begin…</div>
+</div>
+
+<script type="module">
+import { HandLandmarker, FilesetResolver } from "https://cdn.jsdelivr.net/npm/@mediapipe/tasks-vision@0.10.14";
+
+const VER = "0.10.14";
+const cam = document.getElementById('cam');
+const paint = document.getElementById('paint');
+const hud = document.getElementById('hud');
+const pctx = paint.getContext('2d');
+const hctx = hud.getContext('2d');
+const overlay = document.getElementById('overlay');
+const ovTitle = document.getElementById('ovTitle');
+const ovText = document.getElementById('ovText');
+const statusEl = document.getElementById('status');
+
+const COLORS = ['#ff2d75','#ff9e00','#ffe600','#3ddc84','#00e5ff','#4d7bff','#b14dff','#ffffff'];
+let color = COLORS[4];
+let brush = 'neon';
+let size = 14;
+let mirror = true, fade = false, showSkel = true, showCam = true;
+
+let landmarker = null, running = false, lastVideoTime = -1;
+// per-hand pen state: { drawing, lastX, lastY, lastT }
+const pens = {};
+let recorder = null, recChunks = [], recording = false, recTimeout = null;
+
+// ── Palette UI ───────────────────────────────────────────────────────────────
+const pal = document.getElementById('palette');
+COLORS.forEach(c=>{
+  const s=document.createElement('div');s.className='swatch'+(c===color?' on':'');
+  s.style.background=c;s.style.color=c;
+  s.addEventListener('click',()=>{color=c;document.querySelectorAll('.swatch').forEach(e=>e.classList.remove('on'));s.classList.add('on');});
+  pal.appendChild(s);
+});
+document.querySelectorAll('.chip.brush').forEach(ch=>ch.addEventListener('click',()=>{
+  document.querySelectorAll('.chip.brush').forEach(e=>e.classList.remove('on'));ch.classList.add('on');brush=ch.dataset.b;
+}));
+const sizeSlider=document.getElementById('sizeSlider'),sizeVal=document.getElementById('sizeVal');
+sizeSlider.addEventListener('input',()=>{size=+sizeSlider.value;sizeVal.textContent=size;});
+
+function toggle(id,label,get,set){
+  const el=document.getElementById(id);
+  el.addEventListener('click',()=>{set(!get());el.textContent=label+': '+(get()?'on':'off');el.classList.toggle('on',get());});
+}
+toggle('mirrorToggle','Mirror',()=>mirror,v=>{mirror=v;});
+toggle('fadeToggle','Fade trails',()=>fade,v=>{fade=v;});
+toggle('skelToggle','Show hand',()=>showSkel,v=>{showSkel=v;});
+document.getElementById('camToggle').addEventListener('click',()=>{
+  showCam=!showCam;cam.style.opacity=showCam?'1':'0';
+  document.getElementById('camToggle').textContent='Camera: '+(showCam?'visible':'hidden');
+});
+document.getElementById('mirrorToggle').classList.add('on');
+document.getElementById('skelToggle').classList.add('on');
+cam.style.transform = mirror ? 'scaleX(-1)' : 'none';
+
+document.getElementById('clearBtn').addEventListener('click',()=>{pctx.clearRect(0,0,paint.width,paint.height);statusEl.textContent='Cleared';});
+document.getElementById('saveBtn').addEventListener('click',()=>{
+  // composite dark bg + strokes so the PNG isn't transparent
+  const out=document.createElement('canvas');out.width=paint.width;out.height=paint.height;
+  const o=out.getContext('2d');o.fillStyle='#05050c';o.fillRect(0,0,out.width,out.height);o.drawImage(paint,0,0);
+  const a=document.createElement('a');a.download='neural-canvas-'+Date.now()+'.png';a.href=out.toDataURL('image/png');a.click();
+  statusEl.textContent='↓ Saved';
+});
+document.getElementById('recBtn').addEventListener('click',toggleRecord);
+
+// ── Sizing ───────────────────────────────────────────────────────────────────
+function resize(){
+  const r=paint.getBoundingClientRect();
+  const w=Math.round(r.width), h=Math.round(r.height);
+  if(w===paint.width && h===paint.height) return;
+  // preserve painting on resize
+  const snap=document.createElement('canvas');snap.width=paint.width;snap.height=paint.height;
+  if(paint.width) snap.getContext('2d').drawImage(paint,0,0);
+  paint.width=w;paint.height=h;hud.width=w;hud.height=h;
+  if(snap.width) pctx.drawImage(snap,0,0,w,h);
+}
+new ResizeObserver(resize).observe(paint);
+
+// ── Camera + model ───────────────────────────────────────────────────────────
+document.getElementById('startBtn').addEventListener('click',start);
+async function start(){
+  try{
+    ovTitle.textContent='Loading…';ovText.textContent='Requesting camera and downloading the hand-tracking model (a few MB, first time only).';
+    document.getElementById('startBtn').style.display='none';
+    statusEl.textContent='Requesting camera…';
+    const stream=await navigator.mediaDevices.getUserMedia({video:{width:960,height:720,facingMode:'user'},audio:false});
+    cam.srcObject=stream;
+    await new Promise(res=>{cam.onloadedmetadata=()=>{cam.play();res();};});
+    resize();
+    statusEl.textContent='Loading model…';
+    const fileset=await FilesetResolver.forVisionTasks(`https://cdn.jsdelivr.net/npm/@mediapipe/tasks-vision@${VER}/wasm`);
+    landmarker=await HandLandmarker.createFromOptions(fileset,{
+      baseOptions:{modelAssetPath:'https://storage.googleapis.com/mediapipe-models/hand_landmarker/hand_landmarker/float16/1/hand_landmarker.task',delegate:'GPU'},
+      runningMode:'VIDEO', numHands:2
+    });
+    overlay.classList.add('hidden');
+    running=true;statusEl.textContent='✋ Pinch to paint';
+    requestAnimationFrame(loop);
+  }catch(e){
+    console.error(e);
+    overlay.classList.remove('hidden');
+    ovTitle.textContent='Couldn’t start';
+    ovText.innerHTML='<span class="err">'+(e.name==='NotAllowedError'?'Camera permission was denied. Allow it and reload.':(e.message||e))+'</span>';
+    statusEl.textContent='Error';
+  }
+}
+
+// ── Landmarks helpers ────────────────────────────────────────────────────────
+const CONNECTIONS=[[0,1],[1,2],[2,3],[3,4],[0,5],[5,6],[6,7],[7,8],[5,9],[9,10],[10,11],[11,12],[9,13],[13,14],[14,15],[15,16],[13,17],[17,18],[18,19],[19,20],[0,17]];
+function px(lm){ return { x:(mirror?1-lm.x:lm.x)*paint.width, y:lm.y*paint.height }; }
+function dist(a,b){ const dx=a.x-b.x,dy=a.y-b.y; return Math.hypot(dx,dy); }
+
+// ── Main loop ────────────────────────────────────────────────────────────────
+function loop(){
+  if(!running) return;
+  if(cam.currentTime!==lastVideoTime && cam.videoWidth){
+    lastVideoTime=cam.currentTime;
+    let res=null;
+    try{ res=landmarker.detectForVideo(cam, performance.now()); }catch(e){}
+    hctx.clearRect(0,0,hud.width,hud.height);
+    if(fade){ pctx.save();pctx.globalCompositeOperation='destination-out';pctx.fillStyle='rgba(0,0,0,0.06)';pctx.fillRect(0,0,paint.width,paint.height);pctx.restore(); }
+    const seen={};
+    if(res && res.landmarks){
+      res.landmarks.forEach((hand,i)=>{
+        const id='h'+i; seen[id]=true;
+        const tip=px(hand[8]);                       // index fingertip
+        const ref=dist(px(hand[0]),px(hand[9]));     // hand size reference
+        const pinch=dist(px(hand[4]),px(hand[8]))/(ref||1);   // thumb–index gap, normalized
+        const drawing = pinch < 0.45;
+        drawHand(hand, drawing, tip);
+        const pen=pens[id]||(pens[id]={drawing:false});
+        if(drawing){
+          if(pen.drawing){ stroke(pen.lastX,pen.lastY,tip.x,tip.y,pen.lastT); }
+          pen.drawing=true; pen.lastX=tip.x; pen.lastY=tip.y; pen.lastT=performance.now();
+        } else { pen.drawing=false; }
+      });
+    }
+    Object.keys(pens).forEach(id=>{ if(!seen[id]) pens[id].drawing=false; });
+  }
+  requestAnimationFrame(loop);
+}
+
+// ── Brushes ──────────────────────────────────────────────────────────────────
+function stroke(x0,y0,x1,y1,lastT){
+  const now=performance.now();
+  const speed=Math.hypot(x1-x0,y1-y0)/Math.max(1,now-(lastT||now));  // px per ms
+  pctx.save();
+  pctx.lineCap='round';pctx.lineJoin='round';
+  if(brush==='neon'){
+    pctx.globalCompositeOperation='lighter';
+    pctx.shadowColor=color;pctx.shadowBlur=size*1.4;
+    pctx.strokeStyle=color;pctx.lineWidth=size*0.55;
+    line(x0,y0,x1,y1);
+    pctx.shadowBlur=0;pctx.strokeStyle='rgba(255,255,255,0.9)';pctx.lineWidth=Math.max(1,size*0.18);
+    line(x0,y0,x1,y1);
+  } else if(brush==='ribbon'){
+    pctx.globalCompositeOperation='source-over';
+    const w=Math.max(2,size*(1.4-Math.min(1,speed*0.7)));  // slower = thicker
+    pctx.strokeStyle=color;pctx.lineWidth=w;pctx.shadowColor=color;pctx.shadowBlur=size*0.5;
+    line(x0,y0,x1,y1);
+  } else if(brush==='comet'){
+    pctx.globalCompositeOperation='lighter';
+    const w=Math.max(1.5,size*Math.min(1.4,0.3+speed*1.2));  // faster = thicker
+    pctx.strokeStyle=color;pctx.shadowColor=color;pctx.shadowBlur=size*1.6;pctx.lineWidth=w;
+    line(x0,y0,x1,y1);
+  } else if(brush==='spray'){
+    pctx.globalCompositeOperation='lighter';
+    const n=Math.round(size*1.2);
+    for(let k=0;k<n;k++){
+      const a=Math.random()*Math.PI*2, r=Math.random()*size;
+      const t=Math.random();const px_=x0+(x1-x0)*t+Math.cos(a)*r, py_=y0+(y1-y0)*t+Math.sin(a)*r;
+      pctx.fillStyle=color;pctx.globalAlpha=0.5*(1-r/size);
+      pctx.beginPath();pctx.arc(px_,py_,Math.random()*1.6+0.4,0,7);pctx.fill();
+    }
+    pctx.globalAlpha=1;
+  }
+  pctx.restore();
+}
+function line(x0,y0,x1,y1){ pctx.beginPath();pctx.moveTo(x0,y0);pctx.lineTo(x1,y1);pctx.stroke(); }
+
+// ── HUD (fingertip cursor + optional skeleton) ───────────────────────────────
+function drawHand(hand, drawing, tip){
+  if(showSkel){
+    hctx.strokeStyle='rgba(160,140,240,0.35)';hctx.lineWidth=2;
+    CONNECTIONS.forEach(([a,b])=>{const p=px(hand[a]),q=px(hand[b]);hctx.beginPath();hctx.moveTo(p.x,p.y);hctx.lineTo(q.x,q.y);hctx.stroke();});
+    hctx.fillStyle='rgba(184,168,255,0.5)';
+    for(let k=0;k<hand.length;k++){const p=px(hand[k]);hctx.beginPath();hctx.arc(p.x,p.y,2.5,0,7);hctx.fill();}
+  }
+  // cursor ring at index tip
+  hctx.beginPath();hctx.arc(tip.x,tip.y,drawing?size*0.55+6:10,0,7);
+  hctx.strokeStyle=drawing?color:'rgba(255,255,255,0.6)';hctx.lineWidth=drawing?3:2;
+  hctx.shadowColor=color;hctx.shadowBlur=drawing?14:0;hctx.stroke();hctx.shadowBlur=0;
+}
+
+// ── Record (WebM of the stage) ───────────────────────────────────────────────
+function toggleRecord(){
+  const btn=document.getElementById('recBtn');
+  if(recording){ if(recTimeout)clearTimeout(recTimeout); if(recorder&&recorder.state!=='inactive')recorder.stop(); return; }
+  if(!paint.captureStream){ statusEl.textContent='Recording not supported here'; return; }
+  try{
+    // record the painting layer (transparent → dark bg via a compositor canvas)
+    const comp=document.createElement('canvas');comp.width=paint.width;comp.height=paint.height;
+    const cc=comp.getContext('2d'); let compRaf;
+    const paintComp=()=>{cc.fillStyle='#05050c';cc.fillRect(0,0,comp.width,comp.height);cc.drawImage(paint,0,0);compRaf=requestAnimationFrame(paintComp);};
+    paintComp();
+    const stream=comp.captureStream(30);recChunks=[];
+    try{recorder=new MediaRecorder(stream,{mimeType:'video/webm;codecs=vp9'});}catch(e){recorder=new MediaRecorder(stream);}
+    recorder.ondataavailable=e=>{if(e.data&&e.data.size)recChunks.push(e.data);};
+    recorder.onstop=()=>{
+      cancelAnimationFrame(compRaf);
+      const blob=new Blob(recChunks,{type:recorder.mimeType||'video/webm'});
+      const a=document.createElement('a');a.download='neural-canvas-'+Date.now()+'.webm';a.href=URL.createObjectURL(blob);a.click();
+      setTimeout(()=>URL.revokeObjectURL(a.href),1000);
+      recording=false;btn.classList.remove('rec-on');btn.textContent='⏺ Record';statusEl.textContent='⬇ Video saved';
+    };
+    recorder.start();recording=true;btn.classList.add('rec-on');btn.textContent='⏹ Stop';statusEl.textContent='⏺ Recording 15s…';
+    recTimeout=setTimeout(()=>{if(recording&&recorder.state!=='inactive')recorder.stop();},15000);
+  }catch(e){statusEl.textContent='Record failed: '+e.message;}
+}
+
+resize();
+statusEl.textContent='Ready — press “Start camera”.';
+</script>
+</body>
+</html>
