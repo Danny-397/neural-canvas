@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Neural Canvas — AI Generative Art</title>
+<title>Neural Canvas — Evolve a Neural Network into Art</title>
 <script src="https://cdn.jsdelivr.net/npm/@tensorflow/tfjs@4.10.0/dist/tf.min.js"></script>
 <style>
 * { box-sizing: border-box; margin: 0; padding: 0; }
@@ -11,11 +11,11 @@ body {
   background: #07070f; color: #e0e0f0;
   font-family: -apple-system, 'Inter', system-ui, sans-serif;
   min-height: 100vh; display: flex; flex-direction: column;
-  align-items: center; padding: 28px 16px 48px; gap: 22px;
+  align-items: center; padding: 28px 16px 48px; gap: 18px;
 }
 header { text-align: center; }
 header h1 { font-size: 1.5rem; font-weight: 200; letter-spacing: 0.4em; text-transform: uppercase; color: #b8a8ff; }
-header p { font-size: 0.72rem; color: #444; margin-top: 5px; letter-spacing: 0.15em; text-transform: uppercase; }
+header p { font-size: 0.72rem; color: #55557a; margin-top: 5px; letter-spacing: 0.15em; text-transform: uppercase; }
 
 .canvas-wrap { position: relative; }
 #canvas {
@@ -23,10 +23,14 @@ header p { font-size: 0.72rem; color: #444; margin-top: 5px; letter-spacing: 0.1
   box-shadow: 0 0 80px rgba(100,60,255,0.18), 0 0 20px rgba(0,0,0,0.6);
   width: 512px; height: 512px;
   max-width: calc(100vw - 32px); max-height: calc(100vw - 32px);
-  cursor: crosshair;
+  cursor: grab; touch-action: none;
 }
+#canvas:active { cursor: grabbing; }
 .canvas-wrap.audio-active #canvas {
   box-shadow: 0 0 80px rgba(100,60,255,0.18), 0 0 20px rgba(0,0,0,0.6), 0 0 0 2px rgba(96,220,160,0.7);
+}
+.canvas-wrap.recording #canvas {
+  box-shadow: 0 0 80px rgba(255,60,60,0.22), 0 0 20px rgba(0,0,0,0.6), 0 0 0 2px rgba(240,70,70,0.85);
 }
 .overlay {
   position: absolute; inset: 0; display: flex; align-items: center;
@@ -36,7 +40,8 @@ header p { font-size: 0.72rem; color: #444; margin-top: 5px; letter-spacing: 0.1
 }
 .overlay.hidden { opacity: 0; }
 
-.vu-bar { width: 512px; max-width: calc(100vw - 32px); height: 3px; background: #0d0d1a; border-radius: 2px; overflow: hidden; margin-top: 6px; }
+.hint { font-size: 0.62rem; color: #33334e; letter-spacing: 0.1em; text-transform: uppercase; text-align: center; }
+.vu-bar { width: 512px; max-width: calc(100vw - 32px); height: 3px; background: #0d0d1a; border-radius: 2px; overflow: hidden; }
 .vu-fill { height: 100%; width: 0%; background: linear-gradient(to right, #3adc8a, #7c5aed); border-radius: 2px; transition: width 0.05s; }
 
 .controls { width: 100%; max-width: 512px; display: flex; flex-direction: column; gap: 14px; }
@@ -50,7 +55,7 @@ input[type="range"]::-moz-range-thumb { width: 14px; height: 14px; border-radius
 
 .hr { height: 1px; background: #151525; }
 .palette-row { display: flex; align-items: center; gap: 7px; flex-wrap: wrap; }
-.palette-row .lbl { font-size: 0.65rem; color: #383858; letter-spacing: 0.12em; text-transform: uppercase; min-width: 46px; }
+.palette-row .lbl { font-size: 0.65rem; color: #383858; letter-spacing: 0.12em; text-transform: uppercase; min-width: 62px; }
 .chip { padding: 4px 12px; border-radius: 20px; border: 1px solid #1e1e30; background: transparent; color: #444; cursor: pointer; font-size: 0.7rem; letter-spacing: 0.06em; transition: all 0.15s; }
 .chip:hover { border-color: #333348; color: #777; }
 .chip.on { border-color: #6040c0; color: #a090e8; background: rgba(96,64,192,0.12); }
@@ -60,8 +65,12 @@ input[type="range"]::-moz-range-thumb { width: 14px; height: 14px; border-radius
 .btn:hover { border-color: #2e2e48; color: #999; }
 .btn.seed { background: #1e0e4a; border-color: #4a28a0; color: #a090e0; }
 .btn.seed:hover { background: #260e5a; border-color: #6040c0; }
+.btn.evo { background: #0e1e12; border-color: #1e5a38; color: #6ad0a0; }
+.btn.evo:hover { background: #103018; border-color: #2a8050; }
 .btn.on { background: rgba(96,64,192,0.2); border-color: #6040c0; color: #b0a0f0; }
 .btn.audio-on { background: rgba(58,220,138,0.1); border-color: #3adc8a; color: #3adc8a; }
+.btn.rec-on { background: rgba(240,70,70,0.12); border-color: #f04646; color: #ff8080; }
+.btn.breed-on { background: rgba(58,220,138,0.16); border-color: #3adc8a; color: #8af0c0; }
 
 .history-row { display: flex; gap: 8px; align-items: center; }
 .history-lbl { font-size: 0.65rem; color: #2e2e48; letter-spacing: 0.1em; text-transform: uppercase; min-width: 50px; }
@@ -69,6 +78,7 @@ input[type="range"]::-moz-range-thumb { width: 14px; height: 14px; border-radius
 .thumb { width: 60px; height: 60px; border-radius: 6px; cursor: pointer; border: 1px solid #1a1a2e; opacity: 0.5; transition: all 0.15s; flex-shrink: 0; background: #0d0d1a; }
 .thumb:hover { opacity: 1; border-color: #4a28a0; }
 .thumb.empty { cursor: default; opacity: 0.12; }
+.thumb.sel { opacity: 1; border-color: #3adc8a; box-shadow: 0 0 10px rgba(58,220,138,0.6); }
 
 .about { background: #0d0d1a; border: 1px solid #151525; border-radius: 8px; overflow: hidden; }
 .about-header { display: flex; justify-content: space-between; align-items: center; padding: 10px 14px; cursor: pointer; font-size: 0.72rem; color: #444; letter-spacing: 0.1em; text-transform: uppercase; }
@@ -76,6 +86,7 @@ input[type="range"]::-moz-range-thumb { width: 14px; height: 14px; border-radius
 .about-body { padding: 0 14px 14px; font-size: 0.78rem; color: #555; line-height: 1.7; display: none; }
 .about-body.open { display: block; }
 .about-body strong { color: #7060b0; }
+.about-body em { color: #6a8fb0; font-style: normal; }
 
 .status-bar { font-size: 0.68rem; color: #2e2e4e; text-align: center; letter-spacing: 0.08em; text-transform: uppercase; min-height: 14px; }
 </style>
@@ -84,13 +95,14 @@ input[type="range"]::-moz-range-thumb { width: 14px; height: 14px; border-radius
 
 <header>
   <h1>Neural Canvas</h1>
-  <p>Compositional Pattern Networks &middot; Generative AI Art</p>
+  <p>Evolve a Neural Network into Art</p>
 </header>
 
 <div class="canvas-wrap" id="canvasWrap">
   <canvas id="canvas" width="512" height="512"></canvas>
   <div class="overlay" id="overlay">Initializing neural network&hellip;</div>
 </div>
+<div class="hint">Scroll to zoom &middot; Drag to pan &middot; Double-click to reset view</div>
 <div class="vu-bar"><div class="vu-fill" id="vuFill"></div></div>
 
 <div class="controls">
@@ -107,27 +119,41 @@ input[type="range"]::-moz-range-thumb { width: 14px; height: 14px; border-radius
     <input type="range" id="s2" min="-3" max="3" step="0.02" value="-0.6">
   </div>
   <div class="slider-row">
-    <div class="slider-label"><span class="name">Complexity</span><span class="val" id="vs">2.00</span></div>
-    <input type="range" id="ss" min="0.3" max="6.0" step="0.05" value="2.0">
+    <div class="slider-label"><span class="name">Complexity</span><span class="val" id="vs">12.00</span></div>
+    <input type="range" id="ss" min="1.5" max="28" step="0.1" value="12">
   </div>
 
   <div class="hr"></div>
 
   <div class="palette-row">
     <span class="lbl">Palette</span>
-    <button class="chip on" data-m="rgb">Natural</button>
-    <button class="chip" data-m="fire">Fire</button>
-    <button class="chip" data-m="ocean">Ocean</button>
-    <button class="chip" data-m="neon">Neon</button>
-    <button class="chip" data-m="void">Void</button>
-    <button class="chip" data-m="mono">Mono</button>
+    <button class="chip pal on" data-m="rgb">Natural</button>
+    <button class="chip pal" data-m="fire">Fire</button>
+    <button class="chip pal" data-m="ocean">Ocean</button>
+    <button class="chip pal" data-m="neon">Neon</button>
+    <button class="chip pal" data-m="void">Void</button>
+    <button class="chip pal" data-m="mono">Mono</button>
+  </div>
+
+  <div class="palette-row">
+    <span class="lbl">Symmetry</span>
+    <button class="chip sym on" data-s="none">None</button>
+    <button class="chip sym" data-s="mirror">Mirror</button>
+    <button class="chip sym" data-s="kal6">Kaleido 6</button>
+    <button class="chip sym" data-s="kal8">Kaleido 8</button>
   </div>
 
   <div class="btn-row">
     <button class="btn seed" id="bSeed">&#10022; New Seed</button>
+    <button class="btn evo" id="bMutate">&#9883; Mutate</button>
+    <button class="btn evo" id="bBreed">&#129516; Breed</button>
     <button class="btn" id="bAnim">&#9654; Evolve</button>
+  </div>
+  <div class="btn-row">
     <button class="btn" id="bAudio">&#127897; Audio React</button>
+    <button class="btn" id="bRec">&#9210; Record</button>
     <button class="btn" id="bSave">&#8595; Save PNG</button>
+    <button class="btn" id="bShare">&#128279; Share</button>
   </div>
 
   <div class="history-row">
@@ -140,11 +166,13 @@ input[type="range"]::-moz-range-thumb { width: 14px; height: 14px; border-radius
       <span>How it works</span><span id="aboutArrow">›</span>
     </div>
     <div class="about-body" id="aboutBody">
-      <p>Neural Canvas uses a <strong>Compositional Pattern Producing Network (CPPN)</strong> — a neural network that maps every pixel's coordinates <em>(x, y, radius)</em> plus a latent vector <em>(α, β, γ)</em> to an RGB color. The network has <strong>9 hidden layers of 32 neurons</strong> each, producing smooth, organic, infinitely-detailed patterns.</p>
+      <p>Every image here <strong>is</strong> a neural network. A <strong>Compositional Pattern Producing Network (CPPN)</strong> maps each pixel's coordinates <em>(x, y, radius)</em> plus a latent vector <em>(α, β, γ)</em> to an RGB color. It uses <strong>sinusoidal and Gaussian activations</strong> (the SIREN idea) instead of plain tanh — periodic activations are what give the network its crisp, intricate structure. There is no image file until the network computes one, pixel by pixel. Nothing is drawn, sampled, or pulled from a dataset. <strong>This art cannot exist without the network.</strong></p>
       <br>
-      <p>Unlike traditional generative art using noise functions or pre-drawn assets, every pixel is <strong>computed by a unique neural network</strong>. Drag sliders to traverse latent space. Hit <em>New Seed</em> to randomize network weights. Enable <em>Audio React</em> to let your microphone drive the patterns — bass controls α, mids control β, treble controls γ.</p>
+      <p>It's not just generated — it's <strong>evolved</strong>. Every artwork has a reproducible <em>seed</em>. <strong>Mutate</strong> perturbs the network's weights to explore nearby variations. <strong>Breed</strong> crosses the weights of two artworks in your history into a new offspring — human-guided neuro-evolution, the same idea behind Picbreeder and NEAT. Your taste is the fitness function.</p>
       <br>
-      <p style="color:#383858;font-size:0.72rem;">Built with TensorFlow.js. No server, no API — runs entirely in your browser. Created for Hack the Arts 2026.</p>
+      <p>Because the image is a continuous <em>function</em> of coordinates, you can <strong>zoom in forever</strong> and new detail keeps emerging — there is no underlying resolution. <strong>Symmetry</strong> folds the coordinate field into kaleidoscopes. <strong>Audio React</strong> lets your microphone drive the latent vector (bass→α, mids→β, treble→γ). <strong>Record</strong> exports the living animation as video, and <strong>Share</strong> encodes the exact seed into a link anyone can reopen.</p>
+      <br>
+      <p style="color:#383858;font-size:0.72rem;">Built with TensorFlow.js. No server, no API — the network runs entirely in your browser. Created for Hack the Arts 2026.</p>
     </div>
   </div>
 
@@ -152,9 +180,15 @@ input[type="range"]::-moz-range-thumb { width: 14px; height: 14px; border-radius
 </div>
 
 <script>
-const W=512,H=512,AW=192,AH=192,LAYERS=9,UNITS=32,MAX_HISTORY=6;
-let model=null,palette='rgb',animating=false,animRaf=null,animT=0,busy=false,history=[];
+const W=512,H=512,AW=192,AH=192,LAYERS=3,UNITS=24,MAX_HISTORY=6;
+const KINDS=['sin','gauss','sin'];   // per-layer activation mix (SIREN-style)
+const MUT_RATE=0.12, BREED_RATE=0.05, REC_SECONDS=6, DEFAULT_SEED=2468;
+let model=null,palette='rgb',symmetry='none',animating=false,animRaf=null,animT=0,busy=false,history=[];
 let audioCtx=null,analyser=null,audioData=null,audioActive=false,audioRaf=null;
+let view={cx:0,cy:0,zoom:1},currentSeed=null;
+let breedMode=false,breedSelection=[];
+let mediaRecorder=null,recChunks=[],recording=false,recTimeout=null,recAutoAnim=false;
+let wheelT=null;
 
 const canvas=document.getElementById('canvas');
 const ctx=canvas.getContext('2d');
@@ -163,14 +197,56 @@ const statusEl=document.getElementById('status');
 const vuFill=document.getElementById('vuFill');
 const canvasWrap=document.getElementById('canvasWrap');
 
-function buildModel(){
+// ── Custom activation layer (sin / gaussian) ─────────────────────────────────
+// Periodic + radial activations are what give CPPNs crisp, intricate structure.
+// A deep all-tanh stack collapses to a flat mean; a shallow sinusoidal net does not.
+class Act extends tf.layers.Layer{
+  constructor(cfg){super(cfg||{});this.kind=(cfg&&cfg.kind)||'sin';}
+  call(inputs){return tf.tidy(()=>{
+    const x=Array.isArray(inputs)?inputs[0]:inputs;
+    if(this.kind==='sin')return tf.sin(x);
+    if(this.kind==='gauss')return tf.exp(tf.neg(tf.square(x)));
+    return tf.tanh(x);
+  });}
+  computeOutputShape(s){return s;}
+  getConfig(){const c=super.getConfig();c.kind=this.kind;return c;}
+  static get className(){return 'Act';}
+}
+tf.serialization.registerClass(Act);
+
+// ── Model (seeded → reproducible) ────────────────────────────────────────────
+function buildModel(seed){
   const inp=tf.input({shape:[6]});
   let x=inp;
-  for(let i=0;i<LAYERS;i++) x=tf.layers.dense({units:UNITS,activation:'tanh',kernelInitializer:'glorotNormal',biasInitializer:'randomNormal'}).apply(x);
-  const out=tf.layers.dense({units:3,activation:'sigmoid',kernelInitializer:'glorotNormal',biasInitializer:'zeros'}).apply(x);
+  for(let i=0;i<LAYERS;i++){
+    x=tf.layers.dense({
+      units:UNITS,activation:'linear',
+      kernelInitializer:tf.initializers.glorotNormal({seed:seed+i*17+1}),
+      biasInitializer:tf.initializers.randomNormal({mean:0,stddev:0.8,seed:seed+i*17+9})
+    }).apply(x);
+    x=new Act({kind:KINDS[i%KINDS.length]}).apply(x);
+  }
+  const out=tf.layers.dense({
+    units:3,activation:'sigmoid',
+    kernelInitializer:tf.initializers.glorotNormal({seed:seed+9973}),
+    biasInitializer:'zeros'
+  }).apply(x);
   return tf.model({inputs:inp,outputs:out});
 }
 
+function applySeed(seed,rand){
+  currentSeed=seed>>>0;
+  if(model)model.dispose();
+  model=buildModel(currentSeed);
+  if(rand){
+    setSlider('s0','v0',Math.random()*6-3);
+    setSlider('s1','v1',Math.random()*6-3);
+    setSlider('s2','v2',Math.random()*6-3);
+    setSlider('ss','vs',Math.random()*18+5);
+  }
+}
+
+// ── Palettes ─────────────────────────────────────────────────────────────────
 function applyPalette(colors,mode){
   const c=(i)=>colors.slice([0,i],[-1,1]);
   switch(mode){
@@ -183,12 +259,29 @@ function applyPalette(colors,mode){
   }
 }
 
+// ── Symmetry: fold the coordinate field ──────────────────────────────────────
+function foldCoords(xs,ys,mode){
+  if(mode==='mirror') return {x:tf.abs(xs),y:ys};
+  if(mode==='kal6'||mode==='kal8'){
+    const N=mode==='kal6'?6:8, seg=2*Math.PI/N;
+    const rad=tf.sqrt(xs.square().add(ys.square()));
+    let ang=tf.atan2(ys,xs).add(Math.PI);      // 0..2π
+    ang=tf.mod(ang,seg);                        // 0..seg
+    ang=tf.abs(ang.sub(seg/2));                 // mirror within wedge for continuity
+    return {x:rad.mul(tf.cos(ang)),y:rad.mul(tf.sin(ang))};
+  }
+  return {x:xs,y:ys};
+}
+
+// ── Core render (respects view + symmetry) ───────────────────────────────────
 function renderFrame(z0,z1,z2,scale,rw,rh){
   if(!model)return;
   const n=rw*rh;let px;
   tf.tidy(()=>{
-    const xs=tf.linspace(-1,1,rw).tile([rh]);
-    const ys=tf.linspace(-1,1,rh).expandDims(1).tile([1,rw]).reshape([n]);
+    const half=1/view.zoom;
+    let xs=tf.linspace(view.cx-half,view.cx+half,rw).tile([rh]);
+    let ys=tf.linspace(view.cy-half,view.cy+half,rh).expandDims(1).tile([1,rw]).reshape([n]);
+    const f=foldCoords(xs,ys,symmetry); xs=f.x; ys=f.y;
     const rs=tf.sqrt(xs.square().add(ys.square()));
     const inp=tf.stack([xs.mul(scale),ys.mul(scale),rs.mul(scale),tf.fill([n],z0),tf.fill([n],z1),tf.fill([n],z2)],1);
     const raw=model.predict(inp);
@@ -208,70 +301,133 @@ function doRender(opts={}){
   if(busy&&!opts.force)return;busy=true;statusEl.textContent='Rendering…';
   setTimeout(()=>{const{z0,z1,z2,scale}=getZ();renderFrame(z0,z1,z2,scale,W,H);overlay.classList.add('hidden');statusEl.textContent='✓  Ready';busy=false;},12);
 }
+function previewRender(){const{z0,z1,z2,scale}=getZ();renderFrame(z0,z1,z2,scale,AW,AH);}
 
+function setSlider(id,vid,val){const el=document.getElementById(id);el.value=val;document.getElementById(vid).textContent=parseFloat(val).toFixed(2);}
+function setPalette(mode){palette=mode;document.querySelectorAll('.chip.pal').forEach(c=>c.classList.toggle('on',c.dataset.m===mode));}
+function setSymmetry(mode){symmetry=mode;document.querySelectorAll('.chip.sym').forEach(c=>c.classList.toggle('on',c.dataset.s===mode));}
+
+// ── Sliders / palette / symmetry ─────────────────────────────────────────────
 [['s0','v0'],['s1','v1'],['s2','v2'],['ss','vs']].forEach(([sid,vid])=>{
   const sl=document.getElementById(sid),vl=document.getElementById(vid);
   sl.addEventListener('input',()=>{vl.textContent=parseFloat(sl.value).toFixed(2);if(!animating&&!audioActive)doRender();});
 });
-
-document.querySelectorAll('.chip').forEach(chip=>{
-  chip.addEventListener('click',()=>{document.querySelectorAll('.chip').forEach(c=>c.classList.remove('on'));chip.classList.add('on');palette=chip.dataset.m;if(!animating&&!audioActive)doRender();});
+document.querySelectorAll('.chip.pal').forEach(chip=>{
+  chip.addEventListener('click',()=>{setPalette(chip.dataset.m);if(!animating&&!audioActive)doRender();});
+});
+document.querySelectorAll('.chip.sym').forEach(chip=>{
+  chip.addEventListener('click',()=>{setSymmetry(chip.dataset.s);if(!animating&&!audioActive)doRender();});
 });
 
+// ── History ──────────────────────────────────────────────────────────────────
 function buildThumbsUI(){
   const wrap=document.getElementById('thumbs');wrap.innerHTML='';
   for(let i=0;i<MAX_HISTORY;i++){
     const entry=history[history.length-1-i];
     const c=document.createElement('canvas');c.width=60;c.height=60;
-    c.className='thumb'+(entry?'':' empty');
+    c.className='thumb'+(entry?'':' empty')+((entry&&breedSelection.indexOf(entry)>=0)?' sel':'');
     if(entry){
       const img=new Image();img.onload=()=>c.getContext('2d').drawImage(img,0,0,60,60);img.src=entry.dataUrl;
-      c.title='Click to restore';c.addEventListener('click',()=>restoreHistory(entry));
+      c.title=breedMode?'Click to select as parent':'Click to restore';
+      c.addEventListener('click',()=>{ if(breedMode) toggleBreedSelect(entry,c); else restoreHistory(entry); });
     }
     wrap.appendChild(c);
   }
 }
 
 function saveToHistory(){
-  if(!overlay.classList.contains('hidden')){
-    const dataUrl=canvas.toDataURL('image/png');
-    const weights=model.getWeights().map(w=>w.dataSync().slice());
-    history.push({dataUrl,weights,sliders:{...getZ()},palette});
-    if(history.length>MAX_HISTORY)history.shift();
-    buildThumbsUI();
-  }
+  if(!overlay.classList.contains('hidden'))return;
+  const dataUrl=canvas.toDataURL('image/png');
+  const weights=model.getWeights().map(w=>w.dataSync().slice());
+  history.push({dataUrl,weights,sliders:{...getZ()},palette,symmetry,seed:currentSeed,view:{...view}});
+  if(history.length>MAX_HISTORY)history.shift();
+  buildThumbsUI();
 }
 
 function restoreHistory(entry){
   if(animating)toggleAnim();if(audioActive)stopAudio();
   const wt=model.getWeights().map((w,i)=>tf.tensor(entry.weights[i],w.shape));
   model.setWeights(wt);wt.forEach(t=>t.dispose());
+  currentSeed=entry.seed;
   const{z0,z1,z2,scale}=entry.sliders;
-  document.getElementById('s0').value=z0;document.getElementById('v0').textContent=z0.toFixed(2);
-  document.getElementById('s1').value=z1;document.getElementById('v1').textContent=z1.toFixed(2);
-  document.getElementById('s2').value=z2;document.getElementById('v2').textContent=z2.toFixed(2);
-  document.getElementById('ss').value=scale;document.getElementById('vs').textContent=scale.toFixed(2);
-  palette=entry.palette;
-  document.querySelectorAll('.chip').forEach(c=>c.classList.toggle('on',c.dataset.m===palette));
+  setSlider('s0','v0',z0);setSlider('s1','v1',z1);setSlider('s2','v2',z2);setSlider('ss','vs',scale);
+  setPalette(entry.palette);setSymmetry(entry.symmetry||'none');
+  view=entry.view?{...entry.view}:{cx:0,cy:0,zoom:1};
   doRender({force:true});
 }
 
+// ── New Seed ─────────────────────────────────────────────────────────────────
 document.getElementById('bSeed').addEventListener('click',()=>{
   saveToHistory();
-  if(model)model.dispose();model=buildModel();
-  const rz=()=>(Math.random()*6-3).toFixed(2);
-  [['s0','v0'],['s1','v1'],['s2','v2']].forEach(([s,v])=>{const val=rz();document.getElementById(s).value=val;document.getElementById(v).textContent=parseFloat(val).toFixed(2);});
-  const rs=(Math.random()*4+0.6).toFixed(2);document.getElementById('ss').value=rs;document.getElementById('vs').textContent=parseFloat(rs).toFixed(2);
+  view={cx:0,cy:0,zoom:1};
+  applySeed(Math.floor(Math.random()*1e9),true);
   doRender({force:true});
+  statusEl.textContent='✦ New seed '+currentSeed;
 });
 
+// ── Mutate (asexual: perturb weights) ────────────────────────────────────────
+document.getElementById('bMutate').addEventListener('click',()=>{
+  if(!model)return;
+  saveToHistory();
+  const wt=model.getWeights().map(w=>{const nz=tf.randomNormal(w.shape,0,MUT_RATE);const nw=w.add(nz);nz.dispose();return nw;});
+  model.setWeights(wt);wt.forEach(t=>t.dispose());
+  currentSeed=null;
+  doRender({force:true});
+  statusEl.textContent='⚛ Mutated';
+});
+
+// ── Breed (sexual: crossover two parents' weights) ───────────────────────────
+document.getElementById('bBreed').addEventListener('click',toggleBreedMode);
+function toggleBreedMode(){
+  const btn=document.getElementById('bBreed');
+  if(!breedMode){
+    if(history.length<2){statusEl.textContent='Need 2+ artworks in history to breed';return;}
+    breedMode=true;btn.classList.add('breed-on');
+    statusEl.textContent='🧬 Breed: pick 2 parents from history (0/2)';
+    buildThumbsUI();
+  }else{ exitBreedMode(); statusEl.textContent='Breed cancelled'; }
+}
+function exitBreedMode(){
+  breedMode=false;breedSelection=[];
+  document.getElementById('bBreed').classList.remove('breed-on');
+  buildThumbsUI();
+}
+function toggleBreedSelect(entry,el){
+  const idx=breedSelection.indexOf(entry);
+  if(idx>=0){breedSelection.splice(idx,1);el.classList.remove('sel');}
+  else{ if(breedSelection.length>=2)return; breedSelection.push(entry);el.classList.add('sel'); }
+  statusEl.textContent='🧬 Breed: pick 2 parents ('+breedSelection.length+'/2)';
+  if(breedSelection.length===2)doBreed();
+}
+function doBreed(){
+  const[a,b]=breedSelection;
+  saveToHistory();
+  const cur=model.getWeights();
+  const wt=cur.map((w,i)=>{
+    const av=a.weights[i],bv=b.weights[i],len=av.length,out=new Float32Array(len);
+    for(let k=0;k<len;k++)out[k]=(Math.random()<0.5?av[k]:bv[k])+(Math.random()*2-1)*BREED_RATE;
+    return tf.tensor(out,w.shape);
+  });
+  model.setWeights(wt);wt.forEach(t=>t.dispose());
+  currentSeed=null;
+  setSlider('s0','v0',(a.sliders.z0+b.sliders.z0)/2);
+  setSlider('s1','v1',(a.sliders.z1+b.sliders.z1)/2);
+  setSlider('s2','v2',(a.sliders.z2+b.sliders.z2)/2);
+  setSlider('ss','vs',(a.sliders.scale+b.sliders.scale)/2);
+  setPalette(a.palette);
+  view={cx:0,cy:0,zoom:1};
+  exitBreedMode();
+  doRender({force:true});
+  statusEl.textContent='🧬 Bred new offspring';
+}
+
+// ── Evolve (animate latent vector) ───────────────────────────────────────────
 function toggleAnim(){
   animating=!animating;const btn=document.getElementById('bAnim');
   btn.classList.toggle('on',animating);btn.textContent=animating?'⏸ Pause':'▶ Evolve';
   if(animating)animLoop();else cancelAnimationFrame(animRaf);
 }
 document.getElementById('bAnim').addEventListener('click',toggleAnim);
-
 function animLoop(){
   if(!animating||!model)return;animT+=0.018;
   const{z0,z1,z2,scale}=getZ();
@@ -279,6 +435,7 @@ function animLoop(){
   animRaf=requestAnimationFrame(animLoop);
 }
 
+// ── Audio React ──────────────────────────────────────────────────────────────
 function stopAudio(){
   audioActive=false;cancelAnimationFrame(audioRaf);
   if(analyser){analyser.disconnect();analyser=null;}
@@ -287,7 +444,6 @@ function stopAudio(){
   const btn=document.getElementById('bAudio');btn.classList.remove('audio-on');btn.textContent='🎙 Audio React';
   statusEl.textContent='Audio off';
 }
-
 async function toggleAudio(){
   if(audioActive){stopAudio();return;}
   try{
@@ -305,7 +461,6 @@ async function toggleAudio(){
   }catch(e){statusEl.textContent='Mic access denied';console.error(e);}
 }
 document.getElementById('bAudio').addEventListener('click',toggleAudio);
-
 function getAudioLevels(){
   if(!analyser||!audioData)return{bass:0,mid:0,treble:0,volume:0};
   analyser.getByteFrequencyData(audioData);
@@ -314,7 +469,6 @@ function getAudioLevels(){
   bass/=(n*0.10);mid/=(n*0.40);treble/=(n*0.50);
   return{bass,mid,treble,volume:(bass+mid+treble)/3};
 }
-
 function audioLoop(){
   if(!audioActive||!model)return;
   const{bass,mid,treble,volume}=getAudioLevels();
@@ -324,8 +478,43 @@ function audioLoop(){
   audioRaf=requestAnimationFrame(audioLoop);
 }
 
+// ── Record (WebM of the living animation) ────────────────────────────────────
+document.getElementById('bRec').addEventListener('click',toggleRecord);
+function toggleRecord(){
+  if(recording){finishRecord();return;}
+  if(typeof MediaRecorder==='undefined'||!canvas.captureStream){statusEl.textContent='Recording unsupported in this browser';return;}
+  try{
+    const stream=canvas.captureStream(30);
+    recChunks=[];
+    let mr;
+    try{mr=new MediaRecorder(stream,{mimeType:'video/webm;codecs=vp9'});}
+    catch(e){mr=new MediaRecorder(stream);}
+    mediaRecorder=mr;
+    mediaRecorder.ondataavailable=e=>{if(e.data&&e.data.size)recChunks.push(e.data);};
+    mediaRecorder.onstop=()=>{
+      const blob=new Blob(recChunks,{type:mediaRecorder.mimeType||'video/webm'});
+      const a=document.createElement('a');a.download='neural-canvas-'+Date.now()+'.webm';a.href=URL.createObjectURL(blob);a.click();
+      setTimeout(()=>URL.revokeObjectURL(a.href),1000);
+      recording=false;canvasWrap.classList.remove('recording');
+      const btn=document.getElementById('bRec');btn.classList.remove('rec-on');btn.textContent='⏺ Record';
+      if(recAutoAnim&&animating)toggleAnim();recAutoAnim=false;
+      statusEl.textContent='⬇ Video saved';
+    };
+    mediaRecorder.start();
+    recording=true;canvasWrap.classList.add('recording');
+    const btn=document.getElementById('bRec');btn.classList.add('rec-on');btn.textContent='⏹ Stop Rec';
+    if(!animating&&!audioActive){recAutoAnim=true;toggleAnim();}
+    statusEl.textContent='⏺ Recording '+REC_SECONDS+'s…';
+    recTimeout=setTimeout(()=>{if(recording)finishRecord();},REC_SECONDS*1000);
+  }catch(e){statusEl.textContent='Record failed: '+e.message;console.error(e);}
+}
+function finishRecord(){
+  if(recTimeout){clearTimeout(recTimeout);recTimeout=null;}
+  if(mediaRecorder&&mediaRecorder.state!=='inactive')mediaRecorder.stop();
+}
+
+// ── Save PNG ─────────────────────────────────────────────────────────────────
 document.getElementById('bSave').addEventListener('click',()=>{
-  const wasAnim=animating,wasAudio=audioActive;
   if(animating)toggleAnim();if(audioActive)stopAudio();
   setTimeout(()=>{
     const{z0,z1,z2,scale}=getZ();renderFrame(z0,z1,z2,scale,W,H);
@@ -333,22 +522,95 @@ document.getElementById('bSave').addEventListener('click',()=>{
   },50);
 });
 
+// ── Share (encode reproducible state into URL) ───────────────────────────────
+document.getElementById('bShare').addEventListener('click',()=>{
+  if(currentSeed==null){
+    statusEl.textContent='Mutated/bred art has no seed — use Save PNG to keep it';
+    return;
+  }
+  const p=new URLSearchParams();
+  p.set('seed',currentSeed);
+  const{z0,z1,z2,scale}=getZ();
+  p.set('z',[z0,z1,z2,scale].map(v=>(+v).toFixed(3)).join(','));
+  p.set('pal',palette);
+  if(symmetry!=='none')p.set('sym',symmetry);
+  if(view.zoom!==1||view.cx!==0||view.cy!==0)p.set('v',[view.cx.toFixed(4),view.cy.toFixed(4),view.zoom.toFixed(4)].join(','));
+  const q=p.toString();
+  const url=location.origin+location.pathname+'#'+q;
+  location.hash=q;
+  if(navigator.clipboard&&navigator.clipboard.writeText){
+    navigator.clipboard.writeText(url).then(()=>{statusEl.textContent='🔗 Link copied to clipboard';}).catch(()=>{statusEl.textContent='🔗 Link in address bar';});
+  }else{statusEl.textContent='🔗 Link in address bar';}
+});
+
+function loadFromHash(){
+  if(!location.hash||location.hash.length<2)return false;
+  const p=new URLSearchParams(location.hash.slice(1));
+  if(!p.has('seed'))return false;
+  applySeed(+p.get('seed'),false);
+  if(p.has('z')){const a=p.get('z').split(',').map(Number);if(a.length>=4){setSlider('s0','v0',a[0]);setSlider('s1','v1',a[1]);setSlider('s2','v2',a[2]);setSlider('ss','vs',a[3]);}}
+  if(p.has('pal'))setPalette(p.get('pal'));
+  if(p.has('sym'))setSymmetry(p.get('sym'));
+  if(p.has('v')){const a=p.get('v').split(',').map(Number);if(a.length>=3)view={cx:a[0],cy:a[1],zoom:a[2]};}
+  return true;
+}
+
+// ── Canvas interaction: zoom / pan / click-randomize ─────────────────────────
+let dragging=false,dragMoved=false,lastX=0,lastY=0;
+function ptr(e){return e.touches&&e.touches[0]?e.touches[0]:e;}
+canvas.addEventListener('mousedown',e=>{dragging=true;dragMoved=false;lastX=e.clientX;lastY=e.clientY;});
+window.addEventListener('mousemove',e=>{
+  if(!dragging)return;
+  const dx=e.clientX-lastX,dy=e.clientY-lastY;
+  if(Math.abs(dx)+Math.abs(dy)>3)dragMoved=true;
+  lastX=e.clientX;lastY=e.clientY;
+  const half=1/view.zoom;
+  view.cx-=dx/canvas.clientWidth*2*half;
+  view.cy-=dy/canvas.clientHeight*2*half;
+  if(!animating&&!audioActive)previewRender();
+});
+window.addEventListener('mouseup',()=>{
+  if(dragging&&dragMoved&&!animating&&!audioActive)doRender({force:true});
+  dragging=false;
+});
+canvas.addEventListener('wheel',e=>{
+  e.preventDefault();
+  const rect=canvas.getBoundingClientRect();
+  const mx=(e.clientX-rect.left)/rect.width, my=(e.clientY-rect.top)/rect.height;
+  const half=1/view.zoom;
+  const wx=view.cx-half+mx*2*half, wy=view.cy-half+my*2*half;
+  view.zoom*=(e.deltaY<0?1.15:1/1.15);
+  view.zoom=Math.max(0.15,Math.min(view.zoom,400));
+  const nhalf=1/view.zoom;
+  view.cx=wx-(mx*2*nhalf-nhalf);
+  view.cy=wy-(my*2*nhalf-nhalf);
+  if(!animating&&!audioActive){previewRender();clearTimeout(wheelT);wheelT=setTimeout(()=>doRender({force:true}),160);}
+},{passive:false});
+canvas.addEventListener('dblclick',()=>{view={cx:0,cy:0,zoom:1};doRender({force:true});statusEl.textContent='View reset';});
 canvas.addEventListener('click',()=>{
-  if(animating||audioActive)return;
-  const rz=()=>(Math.random()*6-3).toFixed(2);
-  [['s0','v0'],['s1','v1'],['s2','v2']].forEach(([s,v])=>{const val=rz();document.getElementById(s).value=val;document.getElementById(v).textContent=parseFloat(val).toFixed(2);});
+  if(animating||audioActive||breedMode||dragMoved)return;
+  setSlider('s0','v0',Math.random()*6-3);
+  setSlider('s1','v1',Math.random()*6-3);
+  setSlider('s2','v2',Math.random()*6-3);
   doRender();
 });
 
+// ── About toggle ─────────────────────────────────────────────────────────────
 document.getElementById('aboutToggle').addEventListener('click',()=>{
   const body=document.getElementById('aboutBody'),arrow=document.getElementById('aboutArrow');
   body.classList.toggle('open');arrow.textContent=body.classList.contains('open')?'↓':'›';
 });
 
+// ── Init ─────────────────────────────────────────────────────────────────────
 async function init(){
   statusEl.textContent='Building CPPN…';
-  try{await tf.ready();model=buildModel();buildThumbsUI();statusEl.textContent='First render…';doRender({force:true});}
-  catch(e){statusEl.textContent='Error: '+e.message;console.error(e);}
+  try{
+    await tf.ready();
+    if(!loadFromHash())applySeed(DEFAULT_SEED,false);
+    buildThumbsUI();
+    statusEl.textContent='First render…';
+    doRender({force:true});
+  }catch(e){statusEl.textContent='Error: '+e.message;console.error(e);}
 }
 init();
 </script>
