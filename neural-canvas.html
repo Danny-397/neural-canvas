@@ -161,8 +161,8 @@ input[type="text"].name-input:focus { border-color: #4a28a0; }
     <input type="range" id="s2" min="-3" max="3" step="0.02" value="-0.6">
   </div>
   <div class="slider-row">
-    <div class="slider-label"><span class="name">Complexity</span><span class="val" id="vs">12.00</span></div>
-    <input type="range" id="ss" min="1.5" max="28" step="0.1" value="12">
+    <div class="slider-label"><span class="name">Complexity</span><span class="val" id="vs">18.00</span></div>
+    <input type="range" id="ss" min="1.5" max="34" step="0.1" value="18">
   </div>
 
   <div class="hr"></div>
@@ -223,7 +223,7 @@ input[type="text"].name-input:focus { border-color: #4a28a0; }
     <div class="about-body" id="aboutBody">
       <p>Every image here <strong>is</strong> a neural network. A <strong>Compositional Pattern Producing Network (CPPN)</strong> maps each pixel's coordinates <em>(x, y, radius)</em> plus a latent vector <em>(α, β, γ)</em> to an RGB color. It uses <strong>sinusoidal and Gaussian activations</strong> (the SIREN idea) instead of plain tanh — periodic activations are what give the network its crisp, intricate structure. There is no image file until the network computes one, pixel by pixel. Nothing is drawn, sampled, or pulled from a dataset. <strong>This art cannot exist without the network.</strong></p>
       <br>
-      <p>It's not just generated — it's <strong>evolved</strong>. Every artwork has a reproducible <em>seed</em>, and you can even turn any word into art (<strong>Name Art</strong> hashes it into a seed, so your name always makes the same piece). <strong>Mutate</strong> perturbs the weights to explore nearby variations. <strong>Breed</strong> crosses two artworks and opens a <em>generation grid</em> — click the offspring you like and it breeds a new generation from there, over and over. Human-guided neuro-evolution, the same idea behind Picbreeder and NEAT. Your taste is the fitness function.</p>
+      <p>It's not just generated — it's <strong>evolved</strong>. Every artwork has a reproducible <em>seed</em>, and you can even turn any word into art (<strong>Name Art</strong> renders your typed letters filled with the network's texture, seeded by the word — so your name always makes the same piece). <strong>Mutate</strong> perturbs the weights to explore nearby variations. <strong>Breed</strong> crosses two artworks and opens a <em>generation grid</em> — click the offspring you like and it breeds a new generation from there, over and over. Human-guided neuro-evolution, the same idea behind Picbreeder and NEAT. Your taste is the fitness function.</p>
       <br>
       <p>Because the image is a continuous <em>function</em> of coordinates, you can <strong>zoom in forever</strong> and new detail keeps emerging — there is no underlying resolution, so <strong>Export HD</strong> can render it at any size. <strong>Symmetry</strong> folds the coordinate field into kaleidoscopes. <strong>Audio React</strong> lets your microphone drive the latent vector (bass→α, mids→β, treble→γ). <strong>Morph</strong> smoothly interpolates the network's weights between two artworks — a hypnotic transition you can <strong>Record</strong> as video, alongside the evolving latent animation. <strong>Share</strong> encodes the exact seed into a link (with a scannable QR code) anyone can reopen.</p>
       <br>
@@ -250,10 +250,10 @@ if(window.__tfFailed||typeof tf==='undefined'||!tf.layers){
 }
 const W=512,H=512,AW=192,AH=192,LAYERS=3,UNITS=24,MAX_HISTORY=6;
 const KINDS=['sin','gauss','sin'];   // per-layer activation mix (SIREN-style)
-const MUT_RATE=0.12, BREED_RATE=0.05, REC_SECONDS=6, DEFAULT_SEED=2468;
+const MUT_RATE=0.12, BREED_RATE=0.05, REC_SECONDS=6, DEFAULT_SEED=2468, CONTRAST=1.4;
 let model=null,palette='rgb',symmetry='none',animating=false,animRaf=null,animT=0,busy=false,history=[];
 let audioCtx=null,analyser=null,audioData=null,audioActive=false,audioRaf=null;
-let view={cx:0,cy:0,zoom:1},currentSeed=null;
+let view={cx:0,cy:0,zoom:1},currentSeed=null,textWord='';
 let breedMode=false,breedSelection=[];
 let morphMode=false,morphSelection=[],morphActive=false,morphRaf=null,morphT=0,morphA=null,morphB=null,morphAS=null,morphBS=null;
 let mediaRecorder=null,recChunks=[],recording=false,recTimeout=null,recAutoAnim=false;
@@ -263,12 +263,12 @@ const GRID_N=9;
 
 // ── Curated presets (seeds picked to look great with the SIREN model) ─────────
 const PRESETS=[
-  {name:'Aurora',  seed:42424, z:[0.4,0.8,-0.6,12], pal:'rgb',   sym:'none'},
-  {name:'Abyss',   seed:314,   z:[0.4,0.8,-0.6,12], pal:'ocean', sym:'none'},
-  {name:'Orchid',  seed:12321, z:[0.4,0.8,-0.6,12], pal:'neon',  sym:'none'},
-  {name:'Ember',   seed:88888, z:[0.4,0.8,-0.6,12], pal:'fire',  sym:'none'},
-  {name:'Meadow',  seed:8888,  z:[0.4,0.8,-0.6,12], pal:'rgb',   sym:'none'},
-  {name:'Mandala', seed:777,   z:[0.4,0.8,-0.6,14], pal:'void',  sym:'kal6'},
+  {name:'Aurora',  seed:42424, z:[0.4,0.8,-0.6,18], pal:'rgb',   sym:'none'},
+  {name:'Abyss',   seed:314,   z:[0.4,0.8,-0.6,18], pal:'ocean', sym:'none'},
+  {name:'Orchid',  seed:12321, z:[0.4,0.8,-0.6,18], pal:'neon',  sym:'none'},
+  {name:'Ember',   seed:88888, z:[0.4,0.8,-0.6,18], pal:'fire',  sym:'none'},
+  {name:'Meadow',  seed:8888,  z:[0.4,0.8,-0.6,18], pal:'rgb',   sym:'none'},
+  {name:'Mandala', seed:777,   z:[0.4,0.8,-0.6,22], pal:'void',  sym:'kal6'},
 ];
 
 const canvas=document.getElementById('canvas');
@@ -319,7 +319,7 @@ function buildModel(seed){
 function mulberry32(a){return function(){a|=0;a=a+0x6D2B79F5|0;let t=Math.imul(a^a>>>15,1|a);t=t+Math.imul(t^t>>>7,61|t)^t;return((t^t>>>14)>>>0)/4294967296;};}
 function hashStr(s){let h=2166136261>>>0;for(let i=0;i<s.length;i++){h^=s.charCodeAt(i);h=Math.imul(h,16777619);}return h>>>0;}
 function seedSliders(seed){const r=mulberry32((seed^0x9e3779b9)>>>0);
-  setSlider('s0','v0',r()*6-3);setSlider('s1','v1',r()*6-3);setSlider('s2','v2',r()*6-3);setSlider('ss','vs',r()*18+6);}
+  setSlider('s0','v0',r()*6-3);setSlider('s1','v1',r()*6-3);setSlider('s2','v2',r()*6-3);setSlider('ss','vs',r()*12+14);}
 
 function applySeed(seed,rand){
   currentSeed=seed>>>0;
@@ -368,14 +368,40 @@ function computePixels(z0,z1,z2,scale,rw,rh){
     const rs=tf.sqrt(xs.square().add(ys.square()));
     const inp=tf.stack([xs.mul(scale),ys.mul(scale),rs.mul(scale),tf.fill([n],z0),tf.fill([n],z1),tf.fill([n],z2)],1);
     const raw=model.predict(inp);
-    const rgb=applyPalette(raw,palette);
+    const rgb0=applyPalette(raw,palette);
+    const rgb=rgb0.sub(0.5).mul(CONTRAST).add(0.5);   // punch up contrast
     px=rgb.mul(255).clipByValue(0,255).cast('int32').dataSync();
   });
   const tmp=document.createElement('canvas');tmp.width=rw;tmp.height=rh;
   const tc=tmp.getContext('2d');const img=tc.createImageData(rw,rh);
   for(let i=0;i<n;i++){img.data[i*4]=px[i*3];img.data[i*4+1]=px[i*3+1];img.data[i*4+2]=px[i*3+2];img.data[i*4+3]=255;}
   tc.putImageData(img,0,0);
+  if(textWord)applyTextMask(tmp,rw,rh);
   return tmp;
+}
+
+// ── Word-in-art: fill the typed letters with the neural texture ───────────────
+function drawWordText(c,rw,rh,word){
+  c.save();c.fillStyle='#fff';c.textAlign='center';c.textBaseline='middle';
+  let fs=rh*0.55;c.font='900 '+fs+'px Arial, Helvetica, sans-serif';
+  const maxW=rw*0.88, w=c.measureText(word).width;
+  if(w>maxW){fs=fs*maxW/w;c.font='900 '+fs+'px Arial, Helvetica, sans-serif';}
+  c.fillText(word,rw/2,rh/2);c.restore();
+}
+function applyTextMask(artCv,rw,rh){
+  // 1) keep the art only inside the letters
+  const lettered=document.createElement('canvas');lettered.width=rw;lettered.height=rh;
+  const lc=lettered.getContext('2d');
+  lc.drawImage(artCv,0,0);
+  lc.globalCompositeOperation='destination-in';
+  drawWordText(lc,rw,rh,textWord);
+  // 2) dark background + a soft glow, then the lettered art on top
+  const ac=artCv.getContext('2d');
+  ac.globalCompositeOperation='source-over';
+  ac.fillStyle='#05050c';ac.fillRect(0,0,rw,rh);
+  ac.save();ac.shadowColor='rgba(136,96,240,0.7)';ac.shadowBlur=rw*0.02;
+  ac.drawImage(lettered,0,0);ac.restore();
+  ac.drawImage(lettered,0,0);
 }
 function renderFrame(z0,z1,z2,scale,rw,rh){
   if(!model)return;
@@ -428,7 +454,7 @@ function saveToHistory(){
   if(!overlay.classList.contains('hidden'))return;
   const dataUrl=canvas.toDataURL('image/png');
   const weights=model.getWeights().map(w=>w.dataSync().slice());
-  history.push({dataUrl,weights,sliders:{...getZ()},palette,symmetry,seed:currentSeed,view:{...view}});
+  history.push({dataUrl,weights,sliders:{...getZ()},palette,symmetry,seed:currentSeed,view:{...view},textWord});
   if(history.length>MAX_HISTORY)history.shift();
   buildThumbsUI();
 }
@@ -442,6 +468,7 @@ function restoreHistory(entry){
   setSlider('s0','v0',z0);setSlider('s1','v1',z1);setSlider('s2','v2',z2);setSlider('ss','vs',scale);
   setPalette(entry.palette);setSymmetry(entry.symmetry||'none');
   view=entry.view?{...entry.view}:{cx:0,cy:0,zoom:1};
+  textWord=entry.textWord||'';
   doRender({force:true});
 }
 
@@ -449,7 +476,7 @@ function restoreHistory(entry){
 document.getElementById('bSeed').addEventListener('click',()=>{
   if(morphActive)stopMorph();
   saveToHistory();
-  view={cx:0,cy:0,zoom:1};
+  view={cx:0,cy:0,zoom:1};textWord='';
   applySeed(Math.floor(Math.random()*1e9),true);
   doRender({force:true});
   statusEl.textContent='✦ New seed '+currentSeed;
@@ -459,7 +486,7 @@ document.getElementById('bSeed').addEventListener('click',()=>{
 document.getElementById('bMutate').addEventListener('click',()=>{
   if(!model)return;
   if(morphActive)stopMorph();
-  saveToHistory();
+  saveToHistory();textWord='';
   const wt=model.getWeights().map(w=>{const nz=tf.randomNormal(w.shape,0,MUT_RATE);const nw=w.add(nz);nz.dispose();return nw;});
   model.setWeights(wt);wt.forEach(t=>t.dispose());
   currentSeed=null;
@@ -504,6 +531,7 @@ function startBreedGrid(a,b){
   if(animating)toggleAnim();if(audioActive)stopAudio();
   originalGenome=currentGenome();
   saveToHistory();               // preserve whatever was on the canvas
+  textWord='';
   gridSliders={z0:(a.sliders.z0+b.sliders.z0)/2,z1:(a.sliders.z1+b.sliders.z1)/2,z2:(a.sliders.z2+b.sliders.z2)/2,scale:(a.sliders.scale+b.sliders.scale)/2};
   gridPalette=a.palette;
   gridSelIndex=-1;
@@ -579,7 +607,7 @@ function toggleMorphSelect(entry,el){
 function startMorph(a,b){
   exitMorphMode();
   if(animating)toggleAnim();if(audioActive)stopAudio();
-  originalGenome=currentGenome();
+  originalGenome=currentGenome();textWord='';
   morphA=a.weights;morphB=b.weights;morphAS=a.sliders;morphBS=b.sliders;
   setPalette(a.palette);setSymmetry(a.symmetry||'none');view={cx:0,cy:0,zoom:1};currentSeed=null;
   morphActive=true;morphT=0;
@@ -731,6 +759,7 @@ function buildShareURL(){
   p.set('z',[z0,z1,z2,scale].map(v=>(+v).toFixed(3)).join(','));
   p.set('pal',palette);
   if(symmetry!=='none')p.set('sym',symmetry);
+  if(textWord)p.set('t',textWord);
   if(view.zoom!==1||view.cx!==0||view.cy!==0)p.set('v',[view.cx.toFixed(4),view.cy.toFixed(4),view.zoom.toFixed(4)].join(','));
   return location.origin+location.pathname+'#'+p.toString();
 }
@@ -764,8 +793,9 @@ function nameArt(){
   saveToHistory();
   view={cx:0,cy:0,zoom:1};
   applySeed(hashStr(word),true);
+  textWord=word;                    // show the actual letters, filled with the art
   doRender({force:true});
-  statusEl.textContent='✦ Art for “'+word+'”';
+  statusEl.textContent='✦ “'+word+'” in neural texture';
 }
 document.getElementById('bName').addEventListener('click',nameArt);
 document.getElementById('nameInput').addEventListener('keydown',e=>{if(e.key==='Enter')nameArt();});
@@ -774,7 +804,7 @@ document.getElementById('nameInput').addEventListener('keydown',e=>{if(e.key==='
 function loadPreset(p){
   if(animating)toggleAnim();if(audioActive)stopAudio();if(morphActive)stopMorph();
   saveToHistory();
-  view={cx:0,cy:0,zoom:1};
+  view={cx:0,cy:0,zoom:1};textWord='';
   applySeed(p.seed,false);
   setSlider('s0','v0',p.z[0]);setSlider('s1','v1',p.z[1]);setSlider('s2','v2',p.z[2]);setSlider('ss','vs',p.z[3]);
   setPalette(p.pal);setSymmetry(p.sym||'none');
@@ -794,6 +824,7 @@ function loadFromHash(){
   if(p.has('z')){const a=p.get('z').split(',').map(Number);if(a.length>=4){setSlider('s0','v0',a[0]);setSlider('s1','v1',a[1]);setSlider('s2','v2',a[2]);setSlider('ss','vs',a[3]);}}
   if(p.has('pal'))setPalette(p.get('pal'));
   if(p.has('sym'))setSymmetry(p.get('sym'));
+  if(p.has('t')){textWord=p.get('t');const ni=document.getElementById('nameInput');if(ni)ni.value=textWord;}
   if(p.has('v')){const a=p.get('v').split(',').map(Number);if(a.length>=3)view={cx:a[0],cy:a[1],zoom:a[2]};}
   return true;
 }
@@ -832,6 +863,7 @@ canvas.addEventListener('wheel',e=>{
 canvas.addEventListener('dblclick',()=>{view={cx:0,cy:0,zoom:1};doRender({force:true});statusEl.textContent='View reset';});
 canvas.addEventListener('click',()=>{
   if(animating||audioActive||breedMode||morphMode||morphActive||dragMoved)return;
+  textWord='';
   setSlider('s0','v0',Math.random()*6-3);
   setSlider('s1','v1',Math.random()*6-3);
   setSlider('s2','v2',Math.random()*6-3);
