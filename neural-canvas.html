@@ -263,12 +263,12 @@ const GRID_N=9;
 
 // ── Curated presets (seeds picked to look great with the SIREN model) ─────────
 const PRESETS=[
-  {name:'Aurora',  seed:42424, z:[0.4,0.8,-0.6,18], pal:'rgb',   sym:'none'},
-  {name:'Abyss',   seed:314,   z:[0.4,0.8,-0.6,18], pal:'ocean', sym:'none'},
-  {name:'Orchid',  seed:12321, z:[0.4,0.8,-0.6,18], pal:'neon',  sym:'none'},
-  {name:'Ember',   seed:88888, z:[0.4,0.8,-0.6,18], pal:'fire',  sym:'none'},
-  {name:'Meadow',  seed:8888,  z:[0.4,0.8,-0.6,18], pal:'rgb',   sym:'none'},
-  {name:'Mandala', seed:777,   z:[0.4,0.8,-0.6,22], pal:'void',  sym:'kal6'},
+  {name:'Sol',     seed:31415,  z:[0.4,0.8,-0.6,26], pal:'fire',  sym:'kal8'},
+  {name:'Bloom',   seed:271828, z:[0.4,0.8,-0.6,26], pal:'neon',  sym:'kal6'},
+  {name:'Amethyst',seed:777,    z:[0.4,0.8,-0.6,28], pal:'void',  sym:'kal6'},
+  {name:'Tide',    seed:90210,  z:[0.4,0.8,-0.6,26], pal:'ocean', sym:'kal6'},
+  {name:'Ember',   seed:88888,  z:[0.4,0.8,-0.6,20], pal:'fire',  sym:'none'},
+  {name:'Viridis', seed:12321,  z:[0.4,0.8,-0.6,20], pal:'neon',  sym:'none'},
 ];
 
 const canvas=document.getElementById('canvas');
@@ -328,17 +328,28 @@ function applySeed(seed,rand){
   if(rand)seedSliders(currentSeed);
 }
 
-// ── Palettes ─────────────────────────────────────────────────────────────────
-function applyPalette(colors,mode){
-  const c=(i)=>colors.slice([0,i],[-1,1]);
-  switch(mode){
-    case 'fire':{const r=c(0).mul(0.5).add(c(2).mul(0.5));const g=c(0).mul(c(1)).mul(0.7);const b=c(1).mul(0.08);return tf.concat([r,g,b],1).clipByValue(0,1);}
-    case 'ocean':{const r=c(0).mul(0.05).add(c(1).mul(0.08));const g=c(1).mul(0.35).add(c(2).mul(0.15));const b=c(2).mul(0.7).add(c(0).mul(0.25));return tf.concat([r,g,b],1).clipByValue(0,1);}
-    case 'neon':{const bright=colors.pow(0.3);const r=bright.slice([0,0],[-1,1]).mul(1.1);const g=bright.slice([0,1],[-1,1]).mul(0.6);const b=bright.slice([0,2],[-1,1]).mul(1.4);return tf.concat([r,g,b],1).clipByValue(0,1);}
-    case 'void':{const r=c(0).mul(c(2)).mul(0.5);const g=c(1).mul(0.08);const b=c(2).pow(0.6).mul(0.85);return tf.concat([r,g,b],1).clipByValue(0,1);}
-    case 'mono':{const lum=c(0).mul(0.299).add(c(1).mul(0.587)).add(c(2).mul(0.114));return tf.concat([lum,lum,lum],1);}
-    default:return colors;
+// ── Palettes as curated color gradients (LUTs) ───────────────────────────────
+// The network outputs a scalar per pixel; we map it through a designed gradient
+// instead of raw RGB. That is what turns muddy noise into cohesive color.
+const GRADIENTS={
+  rgb:  ['#440154','#414487','#2a788e','#22a884','#7ad151','#fde725'], // viridis
+  fire: ['#000004','#3b0f70','#8c2981','#de4968','#fe9f6d','#fcfdbf'], // magma
+  ocean:['#03045e','#023e8a','#0077b6','#00b4d8','#90e0ef','#caf0f8'],
+  neon: ['#10002b','#ff006e','#8338ec','#3a86ff','#00f5d4','#ffbe0b'],
+  void: ['#03050e','#240046','#5a189a','#9d4edd','#c77dff','#e0aaff'],
+  mono: ['#000000','#2b2b3a','#6b6b85','#b8b8cc','#ffffff'],
+};
+function hex2rgb(h){h=h.replace('#','');return [parseInt(h.slice(0,2),16),parseInt(h.slice(2,4),16),parseInt(h.slice(4,6),16)];}
+const LUTS={};
+function getLUT(name){
+  if(LUTS[name])return LUTS[name];
+  const stops=(GRADIENTS[name]||GRADIENTS.rgb).map(hex2rgb);
+  const lut=new Uint8ClampedArray(256*3);
+  for(let i=0;i<256;i++){
+    const t=i/255*(stops.length-1),a=Math.floor(t),b=Math.min(a+1,stops.length-1),f=t-a;
+    for(let c=0;c<3;c++)lut[i*3+c]=stops[a][c]+(stops[b][c]-stops[a][c])*f;
   }
+  LUTS[name]=lut;return lut;
 }
 
 // ── Symmetry: fold the coordinate field ──────────────────────────────────────
@@ -359,7 +370,7 @@ function foldCoords(xs,ys,mode){
 // Renders the network into a fresh rw×rh canvas — the same function powers the
 // live view, the breed-grid thumbnails, and infinite-resolution HD export.
 function computePixels(z0,z1,z2,scale,rw,rh){
-  const n=rw*rh;let px;
+  const n=rw*rh;let raw;
   tf.tidy(()=>{
     const half=1/view.zoom;
     let xs=tf.linspace(view.cx-half,view.cx+half,rw).tile([rh]);
@@ -367,14 +378,17 @@ function computePixels(z0,z1,z2,scale,rw,rh){
     const f=foldCoords(xs,ys,symmetry); xs=f.x; ys=f.y;
     const rs=tf.sqrt(xs.square().add(ys.square()));
     const inp=tf.stack([xs.mul(scale),ys.mul(scale),rs.mul(scale),tf.fill([n],z0),tf.fill([n],z1),tf.fill([n],z2)],1);
-    const raw=model.predict(inp);
-    const rgb0=applyPalette(raw,palette);
-    const rgb=rgb0.sub(0.5).mul(CONTRAST).add(0.5);   // punch up contrast
-    px=rgb.mul(255).clipByValue(0,255).cast('int32').dataSync();
+    raw=model.predict(inp).dataSync();   // [n*3] in 0..1
   });
+  const lut=getLUT(palette);
   const tmp=document.createElement('canvas');tmp.width=rw;tmp.height=rh;
   const tc=tmp.getContext('2d');const img=tc.createImageData(rw,rh);
-  for(let i=0;i<n;i++){img.data[i*4]=px[i*3];img.data[i*4+1]=px[i*3+1];img.data[i*4+2]=px[i*3+2];img.data[i*4+3]=255;}
+  for(let i=0;i<n;i++){
+    let t=raw[i*3]*0.65+raw[i*3+1]*0.25+raw[i*3+2]*0.10;  // scalar position along gradient
+    t=(t-0.5)*CONTRAST+0.5; t=t<0?0:(t>1?1:t);
+    const j=((t*255)|0)*3;
+    img.data[i*4]=lut[j];img.data[i*4+1]=lut[j+1];img.data[i*4+2]=lut[j+2];img.data[i*4+3]=255;
+  }
   tc.putImageData(img,0,0);
   if(textWord)applyTextMask(tmp,rw,rh);
   return tmp;
@@ -921,7 +935,7 @@ async function init(){
   try{
     await tf.ready();
     buildGallery();
-    if(!loadFromHash())applySeed(DEFAULT_SEED,false);
+    if(!loadFromHash()){applySeed(PRESETS[0].seed,false);setPalette(PRESETS[0].pal);setSymmetry(PRESETS[0].sym);}
     buildThumbsUI();
     statusEl.textContent='First render…';
     doRender({force:true});
