@@ -86,6 +86,7 @@ input[type=range]::-webkit-slider-thumb { -webkit-appearance:none; width:14px; h
     <span class="g hands-only">✊ <b>Fist</b> Clear (hold)</span>
     <span class="g hands-only">✋ <b>Open palm</b> Erase</span>
     <span class="g hands-only">✌️ <b>Victory</b> Next color</span>
+    <span class="g hands-only">👍 <b>Thumb up</b> View (clean)</span>
     <span class="g body-only" style="display:none">🙆 <b>Raise a hand above your shoulder</b> to paint</span>
   </div>
 
@@ -127,6 +128,7 @@ input[type=range]::-webkit-slider-thumb { -webkit-appearance:none; width:14px; h
     <button class="chip" id="fadeToggle">Fade trails: off</button>
     <button class="chip" id="skelToggle">Show tracking: on</button>
     <button class="chip" id="camToggle">Camera: visible</button>
+    <button class="chip" id="viewToggle">👁 View</button>
   </div>
 
   <div class="row">
@@ -162,7 +164,7 @@ const overlay=document.getElementById('overlay'), ovTitle=document.getElementByI
 const COLORS=['#ff2d75','#ff9e00','#ffe600','#3ddc84','#00e5ff','#4d7bff','#b14dff','#ffffff'];
 let colorIdx=4, rainbow=false, hue=200;
 let brush='neon', size=14, symmetry='off', mode='hands';
-let mirror=true, fade=false, showSkel=true, showCam=true, useDepth=false;
+let mirror=true, fade=false, showSkel=true, showCam=true, useDepth=false, viewMode=false;
 
 let fileset=null, gestureModel=null, poseModel=null;
 let running=false, lastVideoTime=-1, stream=null;
@@ -211,7 +213,15 @@ toggle('depthToggle','Depth size',()=>useDepth,v=>useDepth=v);
 document.getElementById('mirrorToggle').classList.add('on');
 document.getElementById('skelToggle').classList.add('on');
 cam.style.transform=mirror?'scaleX(-1)':'none';
-document.getElementById('camToggle').addEventListener('click',()=>{showCam=!showCam;cam.style.opacity=showCam?'1':'0';document.getElementById('camToggle').textContent='Camera: '+(showCam?'visible':'hidden');});
+document.getElementById('camToggle').addEventListener('click',()=>{showCam=!showCam;if(!viewMode)cam.style.opacity=showCam?'1':'0';document.getElementById('camToggle').textContent='Camera: '+(showCam?'visible':'hidden');});
+document.getElementById('viewToggle').addEventListener('click',toggleView);
+function toggleView(){
+  viewMode=!viewMode;
+  cam.style.opacity = viewMode ? '0' : (showCam?'1':'0');
+  if(viewMode)hctx.clearRect(0,0,hud.width,hud.height);
+  const b=document.getElementById('viewToggle'); b.classList.toggle('on',viewMode); b.textContent=viewMode?'👁 View: on':'👁 View';
+  statusEl.textContent = viewMode ? '👁 View mode — painting paused (👍 or button to exit)' : (mode==='body'?'🕺 Raise a hand to paint':'✋ Pinch to paint');
+}
 document.getElementById('audioToggle').addEventListener('click',toggleAudio);
 
 document.getElementById('clearBtn').addEventListener('click',()=>clearCanvas('Cleared'));
@@ -294,8 +304,9 @@ function handleHands(res){
       const pen=pens[id]||(pens[id]={});
       // discrete gesture actions (debounced)
       const gs=gstate[id]||(gstate[id]={last:'None',frames:0});
-      if(g!==gs.last){gs.last=g;gs.frames=0; if(g==='Victory')nextColor();} else gs.frames++;
-      if(g==='Closed_Fist'&&gs.frames===14&&Date.now()-lastClear>1500){clearCanvas('✊ Cleared');lastClear=Date.now();}
+      if(g!==gs.last){gs.last=g;gs.frames=0; if(g==='Thumb_Up')toggleView(); else if(!viewMode&&g==='Victory')nextColor();} else gs.frames++;
+      if(!viewMode&&g==='Closed_Fist'&&gs.frames===14&&Date.now()-lastClear>1500){clearCanvas('✊ Cleared');lastClear=Date.now();}
+      if(viewMode){pen.drawing=false;pen.fx=null;return;}   // 👍 clean view: paused, no overlays
       const tip=px(hand[8]);
       if(g==='Open_Palm'){ const c=px(hand[9]); erase(c.x,c.y,size*4); drawCursor(c.x,c.y,'erase'); if(showSkel)drawHandSkel(hand); pen.drawing=false;pen.fx=null; return; }
       const ref=dist(px(hand[0]),px(hand[9]));
@@ -315,6 +326,7 @@ function handleHands(res){
 }
 
 function handleBody(res){
+  if(viewMode)return;   // 👁 clean view: paused, no overlays
   const seen={};
   if(res&&res.landmarks){
     res.landmarks.forEach((pose,pi)=>{
