@@ -1,25 +1,34 @@
 # Neural Canvas
 
-**Paint glowing light in mid-air — with your bare hands.** *Hack the Arts 2026 submission.*
+![Neural Canvas — paint with your hands](preview.png)
 
-Neural Canvas turns your webcam into a paintbrush. A neural network watches your hands
-in real time and turns your motion into living, glowing art. There is **no brush, no
-mouse, no touchscreen** — you pinch your fingers together in the air and light follows
-your fingertip. **This is art that cannot exist without the technology that perceives it.**
+> **Paint glowing light in mid-air — with your bare hands.**
+> A neural network watches your motion through the webcam and turns it into living art.
+> No brush. No mouse. No touchscreen.
 
-It runs **entirely in your browser** — the camera feed never leaves your device.
+*Built for **Hack the Arts 2026** — the theme: art that wouldn't exist without technology.*
 
-▶ **Live:** https://danny-397.github.io/neural-canvas/
+▶ **Live demo:** https://danny-397.github.io/neural-canvas/
 
 ---
 
+## What it is
+
+Neural Canvas turns your webcam into a paintbrush. A pre-trained hand-tracking model
+follows your fingers in real time; you **pinch your thumb and index finger together** and
+glowing light streams from your fingertip as you move through the air. Change colors, erase,
+undo, and clear — all with **hand gestures**, never the keyboard.
+
+The technology isn't a filter layered on top of the art — it's the only reason the art can
+exist, because it's the thing that can *see* you paint.
+
 ## How to use it
 
-1. Open the site and press **Start camera** (allow camera access).
+1. Open the [live demo](https://danny-397.github.io/neural-canvas/) and press **Start camera** (allow camera access).
 2. **🤏 Pinch** your thumb and index finger together — light paints from your fingertip.
-3. Move your hand to draw. Unpinch to lift the "pen." Works with **both hands at once.**
+3. Move your hand to draw; unpinch to lift the "pen." Both hands work at once.
 
-### Hand gestures
+### Gestures
 
 | Gesture | Action |
 |---|---|
@@ -27,42 +36,67 @@ It runs **entirely in your browser** — the camera feed never leaves your devic
 | ✋ Open palm | Erase |
 | ✌️ Victory | Next color |
 | 👎 Thumb down | Undo |
-| 👍 Thumb up | Clean view (hide the UI to admire / screenshot) |
+| 👍 Thumb up | Clean view (hide the UI to admire or screenshot) |
 | ✊ Fist (hold) | Clear the canvas |
 
 ## Features
 
-- **Live hand tracking** — Google's MediaPipe locates 21 3D points on each hand ~60× a
-  second, fully on-device.
-- **Brushes** — Neon glow, Ribbon, Spray, Comet, and live **Embers** that drift and fade.
-- **Kaleidoscope symmetry** — mirror or 4/6/8-fold folding turns a single stroke into a
+- **Live hand tracking** — locates 21 3D points on each hand ~60× a second, fully on-device.
+- **Brushes** — Neon glow, Ribbon, Spray, Comet, and live **Embers** that drift up and fade.
+- **Kaleidoscope symmetry** — mirror or 4 / 6 / 8-fold folding turns a single stroke into a
   living mandala.
 - **Full-body mode** — swaps in a pose model so you can paint with your whole body.
-- **Two-hand colors, rainbow, adjustable size, backdrops, and bloom.**
+- **Two-hand colors, rainbow, adjustable brush size, backdrops, and bloom.**
 - **Attract mode** — left idle, the canvas paints its own drifting mandala to draw a crowd,
   then hands control back the moment someone raises a hand.
 - **Audio-reactive glow, undo, fullscreen, Save PNG, and Record WebM.**
 
 ## How it works
 
-Every webcam frame is passed to a pre-trained **MediaPipe** gesture/hand model
-([tasks-vision](https://developers.google.com/mediapipe)), which returns the 3D position of
-each hand joint and a classified gesture. The app reads those points — your index fingertip
-is the brush, a pinch is the pen — and a **one-euro filter** smooths the tracking so lines
-stay clean. Symmetry mirrors every stroke into a live kaleidoscope. The machine doesn't make
-the art; **you** do. But you couldn't paint in mid-air unless a neural network perceived
-your motion in real time.
+Every webcam frame is passed to Google's **MediaPipe Tasks Vision** gesture/hand model,
+which returns the 3D position of each hand joint and a classified gesture. The app reads
+those points — your index fingertip is the brush, a pinch is the pen — and a
+[**one-euro filter**](https://gery.casiez.net/1euro/) smooths the raw tracking so lines stay
+clean without feeling laggy. Symmetry applies a set of coordinate transforms to every stroke
+to fold it into a live kaleidoscope, and strokes are rendered with the Canvas 2D API using
+additive blending and shadow-blur glow.
+
+## Privacy
+
+Everything runs **entirely in your browser**. The camera feed is processed on your device
+and **never leaves it** — there is no server, no upload, and no account.
 
 ## Tech
 
-Pure HTML/CSS/JS in a single file, no build step and no server. MediaPipe Tasks Vision
-(WebAssembly + GPU) loaded from a CDN; rendering via the Canvas 2D API.
+Pure HTML / CSS / JavaScript in a single file — no build step, no framework, no server.
+MediaPipe Tasks Vision (WebAssembly + GPU) is loaded from a CDN; everything else is vanilla.
 
 ```
-index.html   → the app
-cppn.html    → an earlier experiment: an abstract generative-art tool (a CPPN/SIREN
-               network that computes an image directly from pixel coordinates). Kept for
-               reference; the hand-painting app above is the actual submission.
+index.html    → the app (open it, that's the whole thing)
+paint.html    → redirect to index.html (kept so earlier shared links still resolve)
+cppn.html     → an earlier experiment: an abstract generative-art tool built on a
+                CPPN/SIREN neural network that computes an image directly from pixel
+                coordinates. Kept for reference; the hand-painting app is the submission.
+preview.png   → social/share cover image
 ```
+
+Run it locally over a secure context (the camera API requires `https://` or `localhost`):
+
+```bash
+# from the repo root
+python -m http.server 8000
+# then open http://localhost:8000
+```
+
+## Credits
+
+- Hand & pose tracking: [Google MediaPipe Tasks Vision](https://developers.google.com/mediapipe)
+- Tracking smoothing: the [1€ Filter](https://gery.casiez.net/1euro/) (Casiez, Roussel & Vogel)
+
+## License
+
+Released under the [MIT License](LICENSE).
+
+---
 
 Created for **Hack the Arts 2026** — *art that wouldn't exist without technology.*
