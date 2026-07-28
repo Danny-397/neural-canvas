@@ -46,7 +46,7 @@ exist, because it's the thing that can *see* you paint.
 - **Kaleidoscope symmetry** — mirror or 4 / 6 / 8-fold folding turns a single stroke into a
   living mandala.
 - **Full-body mode** — swaps in a pose model so you can paint with your whole body.
-- **Two-hand colors, rainbow, backdrops, and bloom.**
+- **Two-hand colors, rainbow, and bloom.**
 - **Attract mode** — left idle, the canvas paints its own drifting mandala to draw a crowd,
   then hands control back the moment someone raises a hand.
 - **Undo, fullscreen, Save PNG, and Record WebM.**

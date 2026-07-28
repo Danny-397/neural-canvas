@@ -26,8 +26,7 @@ Neural Canvas turns your webcam into a paintbrush.
 - **Full-body mode** — a pose model lets you paint with your whole body, not just hands.
 - **Attract mode** — left alone, the canvas paints its own drifting mandala to pull a
   crowd, then instantly hands control back when someone raises a hand.
-- Plus rainbow/two-hand colors, backdrops, bloom, undo, fullscreen, **Save PNG**, and
-  **Record WebM**.
+- Plus rainbow/two-hand colors, bloom, undo, fullscreen, **Save PNG**, and **Record WebM**.
 
 ## How we built it
 A single HTML file — no build step, no server, no data leaving the device. Each webcam

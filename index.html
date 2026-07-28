@@ -66,8 +66,6 @@ header p { font-size:0.72rem; color:#6a6a92; letter-spacing:0.16em; text-transfo
 .btn.rec-on { background:rgba(240,70,70,0.12); border-color:#f04646; color:#ff8080; }
 .btn.audio-on { background:rgba(58,220,138,0.12); border-color:#3adc8a; color:#3adc8a; }
 .status { font-size:0.68rem; color:#38385a; text-align:center; letter-spacing:0.06em; min-height:15px; }
-.slider-row { display:flex; align-items:center; gap:10px; }
-.slider-row .lbl { min-width:58px; font-size:0.62rem; color:#45456a; letter-spacing:0.12em; text-transform:uppercase; }
 input[type=range] { -webkit-appearance:none; appearance:none; flex:1; height:2px; background:linear-gradient(to right,#2a1a5e,#5a3aad); border-radius:2px; outline:none; }
 input[type=range]::-webkit-slider-thumb { -webkit-appearance:none; width:14px; height:14px; border-radius:50%; background:#8860f0; cursor:pointer; box-shadow:0 0 10px rgba(136,96,240,0.7); }
 
@@ -145,23 +143,12 @@ footer a:hover { color:#a090e8; }
   </div>
 
   <div class="row">
-    <span class="lbl">Backdrop</span>
-    <button class="chip bg on" data-bg="space">Space</button>
-    <button class="chip bg" data-bg="ink">Ink</button>
-    <button class="chip bg" data-bg="slate">Slate</button>
-    <button class="chip bg" data-bg="black">Black</button>
-    <button class="chip bg" data-bg="white">White</button>
-  </div>
-
-  <div class="row">
     <span class="lbl">Input</span>
     <button class="chip mode on" data-m="hands">Hands</button>
     <button class="chip mode" data-m="body">Body</button>
   </div>
 
   <div class="row">
-    <button class="chip" id="skelToggle">Show tracking: on</button>
-    <button class="chip" id="viewToggle">View</button>
     <button class="chip" id="twoHandToggle">2-hand colors: off</button>
     <button class="chip" id="bloomToggle">Bloom: off</button>
     <button class="chip" id="fsToggle">Fullscreen</button>
@@ -247,7 +234,6 @@ function nextColor(){rainbow=false;colorIdx=(colorIdx+1)%COLORS.length;refreshCo
 
 document.querySelectorAll('.chip.brush').forEach(ch=>ch.addEventListener('click',()=>{document.querySelectorAll('.chip.brush').forEach(e=>e.classList.remove('on'));ch.classList.add('on');brush=ch.dataset.b;}));
 document.querySelectorAll('.chip.sym').forEach(ch=>ch.addEventListener('click',()=>{document.querySelectorAll('.chip.sym').forEach(e=>e.classList.remove('on'));ch.classList.add('on');symmetry=ch.dataset.s;}));
-document.querySelectorAll('.chip.bg').forEach(ch=>ch.addEventListener('click',()=>{document.querySelectorAll('.chip.bg').forEach(e=>e.classList.remove('on'));ch.classList.add('on');bg=ch.dataset.bg;applyBg();}));
 // mode (hands / body)
 document.querySelectorAll('.chip.mode').forEach(ch=>ch.addEventListener('click',async()=>{
   document.querySelectorAll('.chip.mode').forEach(e=>e.classList.remove('on'));ch.classList.add('on');mode=ch.dataset.m;
@@ -257,20 +243,16 @@ document.querySelectorAll('.chip.mode').forEach(ch=>ch.addEventListener('click',
 }));
 
 function toggle(id,label,get,set){const el=document.getElementById(id);el.addEventListener('click',()=>{set(!get());el.textContent=label+': '+(get()?'on':'off');el.classList.toggle('on',get());});}
-toggle('skelToggle','Show tracking',()=>showSkel,v=>showSkel=v);
 toggle('twoHandToggle','2-hand colors',()=>twoHand,v=>twoHand=v);
 toggle('bloomToggle','Bloom',()=>bloom,v=>bloom=v);
 document.getElementById('fsToggle').addEventListener('click',()=>{const st=document.getElementById('stage');if(!document.fullscreenElement){if(st.requestFullscreen)st.requestFullscreen();}else document.exitFullscreen();});
 document.addEventListener('fullscreenchange',()=>{const st=document.getElementById('stage');if(document.fullscreenElement){Object.assign(st.style,{width:'100vw',height:'100vh',maxWidth:'none',aspectRatio:'auto',borderRadius:'0'});}else{Object.assign(st.style,{width:'',height:'',maxWidth:'',aspectRatio:'',borderRadius:''});}setTimeout(resize,60);});
-document.getElementById('skelToggle').classList.add('on');
 cam.style.transform=mirror?'scaleX(-1)':'none';
-document.getElementById('viewToggle').addEventListener('click',toggleView);
 function toggleView(){
   viewMode=!viewMode;
   cam.style.opacity = viewMode ? '0' : (showCam?'1':'0');
   if(viewMode)hctx.clearRect(0,0,hud.width,hud.height);
-  const b=document.getElementById('viewToggle'); b.classList.toggle('on',viewMode); b.textContent=viewMode?'View: on':'View';
-  statusEl.textContent = viewMode ? 'View mode. Painting paused (thumbs-up gesture or button to exit).' : (mode==='body'?'Raise a hand to paint':'Pinch to paint');
+  statusEl.textContent = viewMode ? 'View mode. Painting paused (thumbs-up gesture to exit).' : (mode==='body'?'Raise a hand to paint':'Pinch to paint');
 }
 
 document.getElementById('clearBtn').addEventListener('click',()=>clearCanvas('Cleared'));
