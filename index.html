@@ -96,7 +96,7 @@ footer a:hover { color:#a090e8; }
 <header>
   <span class="badge">Hack the Arts 2026</span>
   <h1>Neural Canvas</h1>
-  <p>Paint With Your Hands &middot; Real-Time AI Motion Art</p>
+  <p>Paint With Your Hands</p>
 </header>
 
 <div class="stage" id="stage">
@@ -106,9 +106,9 @@ footer a:hover { color:#a090e8; }
   <canvas id="hud"></canvas>
   <div class="overlay" id="overlay">
     <h2 id="ovTitle">Paint with your hands</h2>
-    <p id="ovText">Allow camera access, then <strong>pinch your thumb &amp; index finger</strong> together to paint. Use gestures to clear, erase, and change color — see the key below. Works with both hands.</p>
+    <p id="ovText">Allow camera access, then <strong>pinch your thumb and index finger</strong> together to paint. Use gestures to clear, erase, and change color; the gesture key is below. Works with both hands.</p>
     <div class="dots" id="loadDots"><i></i><i></i><i></i></div>
-    <button class="big-btn" id="startBtn">✋ Start camera</button>
+    <button class="big-btn" id="startBtn">Start camera</button>
   </div>
 </div>
 
@@ -153,45 +153,34 @@ footer a:hover { color:#a090e8; }
     <button class="chip bg" data-bg="white">White</button>
   </div>
 
-  <div class="slider-row">
-    <span class="lbl">Size</span>
-    <input type="range" id="sizeSlider" min="2" max="40" step="1" value="14">
-    <span class="lbl" style="min-width:34px;color:#9080e0;text-align:right" id="sizeVal">14</span>
-  </div>
-
   <div class="row">
     <span class="lbl">Input</span>
-    <button class="chip mode on" data-m="hands">✋ Hands</button>
-    <button class="chip mode" data-m="body">🕺 Body</button>
-    <button class="chip" id="depthToggle">Depth size: off</button>
-    <button class="chip" id="audioToggle">🎙 Audio glow: off</button>
+    <button class="chip mode on" data-m="hands">Hands</button>
+    <button class="chip mode" data-m="body">Body</button>
   </div>
 
   <div class="row">
-    <button class="chip" id="mirrorToggle">Mirror: on</button>
-    <button class="chip" id="fadeToggle">Fade trails: off</button>
     <button class="chip" id="skelToggle">Show tracking: on</button>
-    <button class="chip" id="camToggle">Camera: visible</button>
-    <button class="chip" id="viewToggle">👁 View</button>
-    <button class="chip" id="twoHandToggle">🙌 2-hand colors: off</button>
-    <button class="chip" id="bloomToggle">🌌 Bloom: off</button>
-    <button class="chip" id="fsToggle">⛶ Fullscreen</button>
+    <button class="chip" id="viewToggle">View</button>
+    <button class="chip" id="twoHandToggle">2-hand colors: off</button>
+    <button class="chip" id="bloomToggle">Bloom: off</button>
+    <button class="chip" id="fsToggle">Fullscreen</button>
   </div>
 
   <div class="row">
-    <button class="btn" id="undoBtn">↶ Undo</button>
-    <button class="btn" id="clearBtn">🗑 Clear</button>
-    <button class="btn" id="saveBtn">↓ Save PNG</button>
-    <button class="btn" id="recBtn">⏺ Record</button>
-    <button class="btn" id="stopCamBtn" style="display:none">⏹ Stop camera</button>
+    <button class="btn" id="undoBtn">Undo</button>
+    <button class="btn" id="clearBtn">Clear</button>
+    <button class="btn" id="saveBtn">Save PNG</button>
+    <button class="btn" id="recBtn">Record</button>
+    <button class="btn" id="stopCamBtn" style="display:none">Stop camera</button>
   </div>
 
   <div class="about" id="aboutBox">
     <div class="about-header" id="aboutToggle"><span>How it works</span><span id="aboutArrow">›</span></div>
     <div class="about-body" id="aboutBody">
-      <p>A trained neural network <strong>watches your hands</strong>, not the art. Each webcam frame is fed to Google's <strong>MediaPipe</strong> gesture &amp; hand model, which locates <em>21 3D points per hand</em> in real time — entirely in your browser, no server.</p><br>
+      <p>A trained neural network <strong>watches your hands</strong>, not the art. Each webcam frame is fed to Google's <strong>MediaPipe</strong> gesture &amp; hand model, which locates <em>21 3D points per hand</em> in real time, entirely in your browser with no server.</p><br>
       <p>The app reads those points: your <em>index fingertip</em> is the brush, and a <em>pinch</em> (thumb + index together) is the pen. Gestures like ✊ fist and ✋ open palm are classified by the model to clear and erase. A one-euro filter smooths the tracking so lines are clean. <strong>Symmetry</strong> mirrors every stroke into a live kaleidoscope, and <strong>Body</strong> mode swaps in a full-body pose model so you paint with your whole body.</p><br>
-      <p style="color:#45456a;font-size:0.74rem;">The machine doesn't make the art — <strong>you</strong> do. But it couldn't exist without it: there's no way to paint in mid-air unless a neural network perceives your motion ~60&times; a second. Built for Hack the Arts 2026.</p>
+      <p style="color:#45456a;font-size:0.74rem;">The machine doesn't make the art; <strong>you</strong> do. But it couldn't exist without it: there's no way to paint in mid-air unless a neural network perceives your motion about 60 times a second. Built for Hack the Arts 2026.</p>
     </div>
   </div>
 
@@ -250,55 +239,46 @@ class OneEuro{
 const pal=document.getElementById('palette');
 COLORS.forEach((c,i)=>{const s=document.createElement('div');s.className='swatch'+(i===colorIdx?' on':'');s.style.background=c;s.style.color=c;
   s.addEventListener('click',()=>{colorIdx=i;rainbow=false;refreshColorUI();});pal.appendChild(s);});
-const rbChip=document.createElement('button');rbChip.className='chip rainbow';rbChip.textContent='🌈 Rainbow';
+const rbChip=document.createElement('button');rbChip.className='chip rainbow';rbChip.textContent='Rainbow';
 rbChip.addEventListener('click',()=>{rainbow=!rainbow;refreshColorUI();});pal.appendChild(rbChip);
 function refreshColorUI(){document.querySelectorAll('.swatch').forEach((e,i)=>e.classList.toggle('on',!rainbow&&i===colorIdx));rbChip.classList.toggle('on',rainbow);}
 function curColor(){return rainbow?`hsl(${hue|0},100%,62%)`:COLORS[colorIdx];}
-function nextColor(){rainbow=false;colorIdx=(colorIdx+1)%COLORS.length;refreshColorUI();statusEl.textContent='🎨 '+COLORS[colorIdx];}
+function nextColor(){rainbow=false;colorIdx=(colorIdx+1)%COLORS.length;refreshColorUI();statusEl.textContent='Color changed';}
 
 document.querySelectorAll('.chip.brush').forEach(ch=>ch.addEventListener('click',()=>{document.querySelectorAll('.chip.brush').forEach(e=>e.classList.remove('on'));ch.classList.add('on');brush=ch.dataset.b;}));
 document.querySelectorAll('.chip.sym').forEach(ch=>ch.addEventListener('click',()=>{document.querySelectorAll('.chip.sym').forEach(e=>e.classList.remove('on'));ch.classList.add('on');symmetry=ch.dataset.s;}));
 document.querySelectorAll('.chip.bg').forEach(ch=>ch.addEventListener('click',()=>{document.querySelectorAll('.chip.bg').forEach(e=>e.classList.remove('on'));ch.classList.add('on');bg=ch.dataset.bg;applyBg();}));
-const sizeSlider=document.getElementById('sizeSlider'),sizeVal=document.getElementById('sizeVal');
-sizeSlider.addEventListener('input',()=>{size=+sizeSlider.value;sizeVal.textContent=size;});
-
 // mode (hands / body)
 document.querySelectorAll('.chip.mode').forEach(ch=>ch.addEventListener('click',async()=>{
   document.querySelectorAll('.chip.mode').forEach(e=>e.classList.remove('on'));ch.classList.add('on');mode=ch.dataset.m;
   document.getElementById('key').classList.toggle('body-mode',mode==='body');
   document.querySelectorAll('.body-only').forEach(e=>e.style.display=mode==='body'?'':'none');
-  if(running){ setLoading('Loading '+(mode==='body'?'body':'hand')+' model'); try{await ensureModel();statusEl.textContent=mode==='body'?'🕺 Raise a hand to paint':'✋ Pinch to paint';}catch(e){statusEl.textContent='Model load failed';} }
+  if(running){ setLoading('Loading '+(mode==='body'?'body':'hand')+' model'); try{await ensureModel();statusEl.textContent=mode==='body'?'Raise a hand to paint':'Pinch to paint';}catch(e){statusEl.textContent='Model load failed';} }
 }));
 
 function toggle(id,label,get,set){const el=document.getElementById(id);el.addEventListener('click',()=>{set(!get());el.textContent=label+': '+(get()?'on':'off');el.classList.toggle('on',get());});}
-toggle('mirrorToggle','Mirror',()=>mirror,v=>mirror=v);
-toggle('fadeToggle','Fade trails',()=>fade,v=>fade=v);
 toggle('skelToggle','Show tracking',()=>showSkel,v=>showSkel=v);
-toggle('depthToggle','Depth size',()=>useDepth,v=>useDepth=v);
-toggle('twoHandToggle','🙌 2-hand colors',()=>twoHand,v=>twoHand=v);
-toggle('bloomToggle','🌌 Bloom',()=>bloom,v=>bloom=v);
+toggle('twoHandToggle','2-hand colors',()=>twoHand,v=>twoHand=v);
+toggle('bloomToggle','Bloom',()=>bloom,v=>bloom=v);
 document.getElementById('fsToggle').addEventListener('click',()=>{const st=document.getElementById('stage');if(!document.fullscreenElement){if(st.requestFullscreen)st.requestFullscreen();}else document.exitFullscreen();});
 document.addEventListener('fullscreenchange',()=>{const st=document.getElementById('stage');if(document.fullscreenElement){Object.assign(st.style,{width:'100vw',height:'100vh',maxWidth:'none',aspectRatio:'auto',borderRadius:'0'});}else{Object.assign(st.style,{width:'',height:'',maxWidth:'',aspectRatio:'',borderRadius:''});}setTimeout(resize,60);});
-document.getElementById('mirrorToggle').classList.add('on');
 document.getElementById('skelToggle').classList.add('on');
 cam.style.transform=mirror?'scaleX(-1)':'none';
-document.getElementById('camToggle').addEventListener('click',()=>{showCam=!showCam;if(!viewMode)cam.style.opacity=showCam?'1':'0';document.getElementById('camToggle').textContent='Camera: '+(showCam?'visible':'hidden');});
 document.getElementById('viewToggle').addEventListener('click',toggleView);
 function toggleView(){
   viewMode=!viewMode;
   cam.style.opacity = viewMode ? '0' : (showCam?'1':'0');
   if(viewMode)hctx.clearRect(0,0,hud.width,hud.height);
-  const b=document.getElementById('viewToggle'); b.classList.toggle('on',viewMode); b.textContent=viewMode?'👁 View: on':'👁 View';
-  statusEl.textContent = viewMode ? '👁 View mode — painting paused (👍 or button to exit)' : (mode==='body'?'🕺 Raise a hand to paint':'✋ Pinch to paint');
+  const b=document.getElementById('viewToggle'); b.classList.toggle('on',viewMode); b.textContent=viewMode?'View: on':'View';
+  statusEl.textContent = viewMode ? 'View mode. Painting paused (thumbs-up gesture or button to exit).' : (mode==='body'?'Raise a hand to paint':'Pinch to paint');
 }
-document.getElementById('audioToggle').addEventListener('click',toggleAudio);
 
 document.getElementById('clearBtn').addEventListener('click',()=>clearCanvas('Cleared'));
 function clearCanvas(msg){pushUndo();pctx.clearRect(0,0,paint.width,paint.height);statusEl.textContent=msg;}
 document.getElementById('undoBtn').addEventListener('click',undo);
 function pushUndo(){const c=document.createElement('canvas');c.width=paint.width;c.height=paint.height;c.getContext('2d').drawImage(paint,0,0);undoStack.push(c);if(undoStack.length>12)undoStack.shift();}
-function undo(){if(!undoStack.length){statusEl.textContent='Nothing to undo';return;}const c=undoStack.pop();pctx.clearRect(0,0,paint.width,paint.height);pctx.drawImage(c,0,0);statusEl.textContent='↶ Undo';}
-document.getElementById('saveBtn').addEventListener('click',()=>{const out=document.createElement('canvas');out.width=paint.width;out.height=paint.height;const o=out.getContext('2d');paintBg(o,out.width,out.height);o.drawImage(paint,0,0);o.drawImage(fx,0,0);const a=document.createElement('a');a.download='neural-canvas-'+Date.now()+'.png';a.href=out.toDataURL('image/png');a.click();statusEl.textContent='↓ Saved';});
+function undo(){if(!undoStack.length){statusEl.textContent='Nothing to undo';return;}const c=undoStack.pop();pctx.clearRect(0,0,paint.width,paint.height);pctx.drawImage(c,0,0);statusEl.textContent='Undo';}
+document.getElementById('saveBtn').addEventListener('click',()=>{const out=document.createElement('canvas');out.width=paint.width;out.height=paint.height;const o=out.getContext('2d');paintBg(o,out.width,out.height);o.drawImage(paint,0,0);o.drawImage(fx,0,0);const a=document.createElement('a');a.download='neural-canvas-'+Date.now()+'.png';a.href=out.toDataURL('image/png');a.click();statusEl.textContent='Saved';});
 document.getElementById('recBtn').addEventListener('click',toggleRecord);
 document.getElementById('aboutToggle').addEventListener('click',()=>{const b=document.getElementById('aboutBody');b.classList.toggle('open');document.getElementById('aboutArrow').textContent=b.classList.contains('open')?'↓':'›';});
 
@@ -326,12 +306,12 @@ async function startCamera(){
     cam.srcObject=stream; await new Promise(r=>{cam.onloadedmetadata=()=>{cam.play();r();};}); resize();
     setLoading('Loading model'); await ensureModel();
     overlay.classList.add('hidden'); loadDots.classList.remove('on'); running=true; lastVideoTime=-1; lastSeenTime=performance.now();
-    statusEl.textContent=mode==='body'?'🕺 Raise a hand to paint':'✋ Pinch to paint';
+    statusEl.textContent=mode==='body'?'Raise a hand to paint':'Pinch to paint';
     document.getElementById('stopCamBtn').style.display='';
     requestAnimationFrame(loop);
   }catch(e){console.error(e);overlay.classList.remove('hidden');ovTitle.textContent='Couldn’t start';
     ovText.innerHTML='<span class="err">'+(e.name==='NotAllowedError'?'Camera permission denied. Allow it and reload.':(e.message||e))+'</span>';
-    loadDots.classList.remove('on');b.style.display='';b.textContent='✋ Retry';statusEl.textContent='Error';}
+    loadDots.classList.remove('on');b.style.display='';b.textContent='Retry';statusEl.textContent='Error';}
 }
 function stopCamera(){
   if(!running&&!stream)return; running=false;
@@ -339,9 +319,9 @@ function stopCamera(){
   if(stream){stream.getTracks().forEach(t=>t.stop());stream=null;} cam.srcObject=null;
   Object.keys(pens).forEach(id=>{pens[id].drawing=false;pens[id].fx=null;});
   hctx.clearRect(0,0,hud.width,hud.height);
-  ovTitle.textContent='Camera off'; ovText.innerHTML='The camera is stopped — nothing is being captured. Your painting is safe; press resume, or Save it below.';
-  const b=document.getElementById('startBtn');b.style.display='';b.textContent='✋ Resume';overlay.classList.remove('hidden');
-  document.getElementById('stopCamBtn').style.display='none'; statusEl.textContent='Camera off — not capturing';
+  ovTitle.textContent='Camera off'; ovText.innerHTML='The camera is stopped. Nothing is being captured. Your painting is safe; press resume, or save it below.';
+  const b=document.getElementById('startBtn');b.style.display='';b.textContent='Resume';overlay.classList.remove('hidden');
+  document.getElementById('stopCamBtn').style.display='none'; statusEl.textContent='Camera off, not capturing';
 }
 
 // ── Helpers ──────────────────────────────────────────────────────────────────
@@ -378,10 +358,10 @@ function updateParticles(){fctx.clearRect(0,0,fx.width,fx.height);if(!particles.
 
 // ── Attract / idle mode (auto mandala when nobody's using it) ─────────────────
 function enterAttract(){attract=true;const a=document.createElement('canvas');a.width=paint.width;a.height=paint.height;a.getContext('2d').drawImage(paint,0,0);
-  savedAttract={symmetry,brush,rainbow,fade,art:a};symmetry='6';brush='neon';rainbow=true;fade=true;pctx.clearRect(0,0,paint.width,paint.height);attractPen={};attractT=0;statusEl.textContent='✨ Idle demo — raise your hand to paint';}
-function exitAttract(){attract=false;if(!savedAttract)return;symmetry=savedAttract.symmetry;brush=savedAttract.brush;rainbow=savedAttract.rainbow;fade=savedAttract.fade;pctx.clearRect(0,0,paint.width,paint.height);pctx.drawImage(savedAttract.art,0,0);savedAttract=null;refreshColorUI();statusEl.textContent=mode==='body'?'🕺 Raise a hand to paint':'✋ Pinch to paint';}
+  savedAttract={symmetry,brush,rainbow,fade,art:a};symmetry='6';brush='neon';rainbow=true;fade=true;pctx.clearRect(0,0,paint.width,paint.height);attractPen={};attractT=0;statusEl.textContent='Idle demo. Raise your hand to paint';}
+function exitAttract(){attract=false;if(!savedAttract)return;symmetry=savedAttract.symmetry;brush=savedAttract.brush;rainbow=savedAttract.rainbow;fade=savedAttract.fade;pctx.clearRect(0,0,paint.width,paint.height);pctx.drawImage(savedAttract.art,0,0);savedAttract=null;refreshColorUI();statusEl.textContent=mode==='body'?'Raise a hand to paint':'Pinch to paint';}
 function drawAttractFrame(){attractT+=0.03;const cx=paint.width/2,cy=paint.height/2,R=Math.min(cx,cy);const rr=R*(0.25+0.55*(0.5+0.5*Math.sin(attractT*0.21)));const x=cx+Math.cos(attractT)*rr,y=cy+Math.sin(attractT*1.4)*rr;if(attractPen.init)stroke(attractPen.x,attractPen.y,x,y,attractPen,1);attractPen.x=x;attractPen.y=y;attractPen.lt=performance.now();attractPen.init=true;
-  hctx.save();hctx.fillStyle='rgba(184,168,255,0.55)';hctx.font='600 15px system-ui,sans-serif';hctx.textAlign='center';hctx.fillText('✋ Raise your hand to paint',cx,paint.height-22);hctx.restore();}
+  hctx.save();hctx.fillStyle='rgba(184,168,255,0.55)';hctx.font='600 15px system-ui,sans-serif';hctx.textAlign='center';hctx.fillText('Raise your hand to paint',cx,paint.height-22);hctx.restore();}
 function handColor(hd){const name=(hd&&hd[0])?hd[0].categoryName:'Right';return name==='Left'?COLORS[0]:COLORS[4];}
 
 function handleHands(res){
@@ -400,7 +380,7 @@ function handleHands(res){
         else if(!viewMode&&g==='Victory')nextColor();
         else if(!viewMode&&g==='Thumb_Down')undo();
       } else gs.frames++;
-      if(!viewMode&&g==='Closed_Fist'&&gs.frames===14&&Date.now()-lastClear>1500){clearCanvas('✊ Cleared');lastClear=Date.now();}
+      if(!viewMode&&g==='Closed_Fist'&&gs.frames===14&&Date.now()-lastClear>1500){clearCanvas('Cleared');lastClear=Date.now();}
       if(viewMode){pen.drawing=false;pen.fx=null;return;}   // 👍 clean view: paused, no overlays
       const tip=px(hand[8]);
       const colOv = twoHand ? handColor(res.handedness&&res.handedness[i]) : null;
@@ -518,14 +498,14 @@ function toggleRecord(){
     const s=comp.captureStream(30);recChunks=[];
     try{recorder=new MediaRecorder(s,{mimeType:'video/webm;codecs=vp9'});}catch(e){recorder=new MediaRecorder(s);}
     recorder.ondataavailable=e=>{if(e.data&&e.data.size)recChunks.push(e.data);};
-    recorder.onstop=()=>{cancelAnimationFrame(raf);const blob=new Blob(recChunks,{type:recorder.mimeType||'video/webm'});const a=document.createElement('a');a.download='neural-canvas-'+Date.now()+'.webm';a.href=URL.createObjectURL(blob);a.click();setTimeout(()=>URL.revokeObjectURL(a.href),1000);recording=false;btn.classList.remove('rec-on');btn.textContent='⏺ Record';statusEl.textContent='⬇ Video saved';};
-    recorder.start();recording=true;btn.classList.add('rec-on');btn.textContent='⏹ Stop';statusEl.textContent='⏺ Recording 15s…';
+    recorder.onstop=()=>{cancelAnimationFrame(raf);const blob=new Blob(recChunks,{type:recorder.mimeType||'video/webm'});const a=document.createElement('a');a.download='neural-canvas-'+Date.now()+'.webm';a.href=URL.createObjectURL(blob);a.click();setTimeout(()=>URL.revokeObjectURL(a.href),1000);recording=false;btn.classList.remove('rec-on');btn.textContent='Record';statusEl.textContent='Video saved';};
+    recorder.start();recording=true;btn.classList.add('rec-on');btn.textContent='Stop';statusEl.textContent='Recording 15s…';
     recTimeout=setTimeout(()=>{if(recording&&recorder.state!=='inactive')recorder.stop();},15000);
   }catch(e){statusEl.textContent='Record failed: '+e.message;}
 }
 
 refreshColorUI(); resize();
-statusEl.textContent='Ready — press “Start camera”.';
+statusEl.textContent='Ready. Press “Start camera”.';
 </script>
 </body>
 </html>
