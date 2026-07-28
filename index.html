@@ -41,6 +41,16 @@ header p { font-size:0.72rem; color:#6a6a92; letter-spacing:0.16em; text-transfo
 .big-btn { padding:13px 26px; border-radius:10px; border:1px solid #4a28a0; background:#1e0e4a; color:#b8a8ff; cursor:pointer; font-size:0.9rem; letter-spacing:0.06em; transition:all 0.15s; }
 .big-btn:hover { background:#2a1060; border-color:#6040c0; }
 
+/* animated loading dots — three oscillating dots that make it obvious the app is working */
+.dots { display:none; align-items:center; gap:8px; height:14px; vertical-align:middle; }
+.dots.on { display:inline-flex; }
+.dots i { width:9px; height:9px; border-radius:50%; background:#8860f0; box-shadow:0 0 8px rgba(136,96,240,0.7); animation:dotBounce 1.2s infinite ease-in-out both; }
+.dots i:nth-child(2) { animation-delay:0.16s; }
+.dots i:nth-child(3) { animation-delay:0.32s; }
+.dots.sm { gap:5px; height:8px; }
+.dots.sm i { width:5px; height:5px; box-shadow:none; background:#9080e0; }
+@keyframes dotBounce { 0%,80%,100% { transform:translateY(0); opacity:0.3; } 40% { transform:translateY(-7px); opacity:1; } }
+
 .controls { width:960px; max-width:calc(100vw - 28px); display:flex; flex-direction:column; gap:11px; }
 .row { display:flex; gap:8px; align-items:center; flex-wrap:wrap; }
 .row .lbl { font-size:0.62rem; color:#45456a; letter-spacing:0.12em; text-transform:uppercase; min-width:58px; }
@@ -97,6 +107,7 @@ footer a:hover { color:#a090e8; }
   <div class="overlay" id="overlay">
     <h2 id="ovTitle">Paint with your hands</h2>
     <p id="ovText">Allow camera access, then <strong>pinch your thumb &amp; index finger</strong> together to paint. Use gestures to clear, erase, and change color — see the key below. Works with both hands.</p>
+    <div class="dots" id="loadDots"><i></i><i></i><i></i></div>
     <button class="big-btn" id="startBtn">✋ Start camera</button>
   </div>
 </div>
@@ -202,6 +213,9 @@ const POSE_URL='https://storage.googleapis.com/mediapipe-models/pose_landmarker/
 const cam=document.getElementById('cam'), paint=document.getElementById('paint'), fx=document.getElementById('fx'), hud=document.getElementById('hud');
 const pctx=paint.getContext('2d'), fctx=fx.getContext('2d'), hctx=hud.getContext('2d');
 const overlay=document.getElementById('overlay'), ovTitle=document.getElementById('ovTitle'), ovText=document.getElementById('ovText'), statusEl=document.getElementById('status');
+const loadDots=document.getElementById('loadDots');
+// show a status message with three animated loading dots (clear it with plain textContent)
+function setLoading(msg){ statusEl.innerHTML = msg.replace(/[.…]+$/,'') + ' <span class="dots sm on"><i></i><i></i><i></i></span>'; }
 
 const COLORS=['#ff2d75','#ff9e00','#ffe600','#3ddc84','#00e5ff','#4d7bff','#b14dff','#ffffff'];
 let colorIdx=4, rainbow=false, hue=200;
@@ -253,7 +267,7 @@ document.querySelectorAll('.chip.mode').forEach(ch=>ch.addEventListener('click',
   document.querySelectorAll('.chip.mode').forEach(e=>e.classList.remove('on'));ch.classList.add('on');mode=ch.dataset.m;
   document.getElementById('key').classList.toggle('body-mode',mode==='body');
   document.querySelectorAll('.body-only').forEach(e=>e.style.display=mode==='body'?'':'none');
-  if(running){ statusEl.textContent='Loading '+(mode==='body'?'body':'hand')+' model…'; try{await ensureModel();statusEl.textContent=mode==='body'?'🕺 Raise a hand to paint':'✋ Pinch to paint';}catch(e){statusEl.textContent='Model load failed';} }
+  if(running){ setLoading('Loading '+(mode==='body'?'body':'hand')+' model'); try{await ensureModel();statusEl.textContent=mode==='body'?'🕺 Raise a hand to paint':'✋ Pinch to paint';}catch(e){statusEl.textContent='Model load failed';} }
 }));
 
 function toggle(id,label,get,set){const el=document.getElementById(id);el.addEventListener('click',()=>{set(!get());el.textContent=label+': '+(get()?'on':'off');el.classList.toggle('on',get());});}
@@ -306,18 +320,18 @@ async function ensureModel(){
 async function startCamera(){
   const b=document.getElementById('startBtn');
   try{
-    ovTitle.textContent='Loading…';ovText.textContent='Requesting camera and downloading the model (a few MB, first time only).';b.style.display='none';
-    statusEl.textContent='Requesting camera…';
+    ovTitle.textContent='Loading…';ovText.textContent='Requesting camera and downloading the model (a few MB, first time only).';b.style.display='none';loadDots.classList.add('on');
+    setLoading('Requesting camera');
     stream=await navigator.mediaDevices.getUserMedia({video:{width:960,height:720,facingMode:'user'},audio:false});
     cam.srcObject=stream; await new Promise(r=>{cam.onloadedmetadata=()=>{cam.play();r();};}); resize();
-    statusEl.textContent='Loading model…'; await ensureModel();
-    overlay.classList.add('hidden'); running=true; lastVideoTime=-1; lastSeenTime=performance.now();
+    setLoading('Loading model'); await ensureModel();
+    overlay.classList.add('hidden'); loadDots.classList.remove('on'); running=true; lastVideoTime=-1; lastSeenTime=performance.now();
     statusEl.textContent=mode==='body'?'🕺 Raise a hand to paint':'✋ Pinch to paint';
     document.getElementById('stopCamBtn').style.display='';
     requestAnimationFrame(loop);
   }catch(e){console.error(e);overlay.classList.remove('hidden');ovTitle.textContent='Couldn’t start';
     ovText.innerHTML='<span class="err">'+(e.name==='NotAllowedError'?'Camera permission denied. Allow it and reload.':(e.message||e))+'</span>';
-    b.style.display='';b.textContent='✋ Retry';statusEl.textContent='Error';}
+    loadDots.classList.remove('on');b.style.display='';b.textContent='✋ Retry';statusEl.textContent='Error';}
 }
 function stopCamera(){
   if(!running&&!stream)return; running=false;
