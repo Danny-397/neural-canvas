@@ -211,7 +211,7 @@ let recorder=null, recChunks=[], recording=false, recTimeout=null;
 
 // ── One-euro smoothing filter (kills hand-tracking jitter) ────────────────────
 class OneEuro{
-  constructor(minCut=1.6, beta=0.012, dCut=1.0){this.mc=minCut;this.beta=beta;this.dc=dCut;this.xP=null;this.dxP=0;this.tP=null;}
+  constructor(minCut=2.0, beta=0.03, dCut=1.0){this.mc=minCut;this.beta=beta;this.dc=dCut;this.xP=null;this.dxP=0;this.tP=null;}
   a(cut,dt){const tau=1/(2*Math.PI*cut);return 1/(1+tau/dt);}
   f(x,t){ if(this.xP===null){this.xP=x;this.tP=t;return x;} const dt=Math.max(1e-3,(t-this.tP)/1000);
     const dx=(x-this.xP)/dt, aD=this.a(this.dc,dt), dxH=aD*dx+(1-aD)*this.dxP;
@@ -281,7 +281,7 @@ async function startCamera(){
   try{
     ovTitle.textContent='Loading…';ovText.textContent='Requesting camera and downloading the model (a few MB, first time only).';b.style.display='none';loadDots.classList.add('on');
     setLoading('Requesting camera');
-    stream=await navigator.mediaDevices.getUserMedia({video:{width:960,height:720,facingMode:'user'},audio:false});
+    stream=await navigator.mediaDevices.getUserMedia({video:{width:{ideal:640},height:{ideal:480},frameRate:{ideal:60},facingMode:'user'},audio:false});
     cam.srcObject=stream; await new Promise(r=>{cam.onloadedmetadata=()=>{cam.play();r();};}); resize();
     setLoading('Loading model'); await ensureModel();
     overlay.classList.add('hidden'); loadDots.classList.remove('on'); running=true; lastVideoTime=-1; lastSeenTime=performance.now();
@@ -352,22 +352,28 @@ function handleHands(res){
       const id='h'+i; seen[id]=true;
       const g=(res.gestures&&res.gestures[i]&&res.gestures[i][0])?res.gestures[i][0].categoryName:'None';
       const pen=pens[id]||(pens[id]={});
-      // discrete gesture actions (debounced, triggered on entry)
-      const gs=gstate[id]||(gstate[id]={last:'None',frames:0});
-      if(g!==gs.last){gs.last=g;gs.frames=0;
-        if(g==='Thumb_Up')toggleView();
-        else if(!viewMode&&g==='Victory')nextColor();
-        else if(!viewMode&&g==='Thumb_Down')undo();
-      } else gs.frames++;
-      if(!viewMode&&g==='Closed_Fist'&&gs.frames===14&&Date.now()-lastClear>1500){clearCanvas('Cleared');lastClear=Date.now();}
-      if(viewMode){pen.drawing=false;pen.fx=null;return;}   // 👍 clean view: paused, no overlays
+      const gs=gstate[id]||(gstate[id]={last:'None',frames:0,fired:false});
+      if(g!==gs.last){gs.last=g;gs.frames=0;gs.fired=false;} else gs.frames++;
+
       const tip=px(hand[8]);
       const colOv = twoHand ? handColor(res.handedness&&res.handedness[i]) : null;
+      // pinch with hysteresis: engage tightly, release loosely, so a wobbling
+      // pinch keeps ONE continuous stroke instead of breaking up mid-signature
+      const ref=dist(px(hand[0]),px(hand[9]))||1;
+      const pinch=dist(px(hand[4]),tip)/ref;
+      const drawing = g!=='Closed_Fist' && g!=='Open_Palm' && (pen.drawing ? pinch<0.62 : pinch<0.45);
+
+      // discrete gesture actions — only when NOT drawing, held ~3 frames, once per gesture,
+      // so a single misread frame can't change color or pause painting mid-stroke
+      if(!drawing && !gs.fired && gs.frames===3){
+        if(g==='Thumb_Up'){toggleView();gs.fired=true;}
+        else if(!viewMode&&g==='Victory'){nextColor();gs.fired=true;}
+        else if(!viewMode&&g==='Thumb_Down'){undo();gs.fired=true;}
+      }
+      if(!viewMode&&g==='Closed_Fist'&&gs.frames===14&&Date.now()-lastClear>1500){clearCanvas('Cleared');lastClear=Date.now();}
+      if(viewMode){pen.drawing=false;pen.fx=null;return;}   // clean view: paused, no overlays
       if(g==='Open_Palm'){ if(!pen.erasing){pushUndo();pen.erasing=true;} const c=px(hand[9]); erase(c.x,c.y,size*4); drawCursor(c.x,c.y,'erase'); if(showSkel)drawHandSkel(hand); pen.drawing=false;pen.fx=null; return; }
       pen.erasing=false;
-      const ref=dist(px(hand[0]),px(hand[9]));
-      const pinch=dist(px(hand[4]),tip)/(ref||1);
-      const drawing = pinch<0.45 && g!=='Closed_Fist';
       if(showSkel)drawHandSkel(hand);
       if(drawing){
         if(!pen.drawing)pushUndo();
