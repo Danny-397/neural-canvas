@@ -81,8 +81,8 @@ full-body dance painting, and a gallery of recorded pieces.
 - [ ] Page loads over **https**; camera permission granted; landing overlay dismisses.
 - [ ] Pinch paints; unpinch lifts; both hands work.
 - [ ] Gestures: ✋ erase, ✌️ color, 👎 undo, 👍 view, ✊ hold-to-clear.
-- [ ] Brushes (neon/ribbon/spray/comet/embers) and size slider all visibly change strokes.
-- [ ] Symmetry 4/6/8-fold + mirror; bloom; backdrops.
+- [ ] Brushes (neon/ribbon/spray/comet/embers) all visibly change strokes.
+- [ ] Symmetry 4/6/8-fold + mirror; bloom.
 - [ ] Body mode: raise a hand above your shoulder to paint.
 - [ ] Attract mode kicks in after ~15s idle and releases when you raise a hand.
 - [ ] Save PNG downloads; Record produces a WebM.
