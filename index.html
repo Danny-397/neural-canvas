@@ -6,7 +6,7 @@
 <title>Neural Canvas — Paint With Your Hands</title>
 <meta name="description" content="Paint glowing light in mid-air with your bare hands. A neural network tracks your motion through your webcam — no brush, no mouse, no touchscreen. Built for Hack the Arts 2026.">
 <meta name="author" content="Danny Lichtenberger">
-<meta name="theme-color" content="#0a0a0d">
+<meta name="theme-color" content="#0a0810">
 <link rel="canonical" href="https://danny-397.github.io/neural-canvas/">
 <!-- Open Graph / social sharing -->
 <meta property="og:type" content="website">
@@ -21,69 +21,69 @@
 <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><rect width='100' height='100' rx='22' fill='%23120a2e'/><circle cx='50' cy='50' r='27' fill='none' stroke='%238860f0' stroke-width='7'/><circle cx='50' cy='50' r='8' fill='%23b8a8ff'/></svg>">
 <style>
 * { box-sizing: border-box; margin: 0; padding: 0; }
-body { background:#0a0a0d; color:#e6e6ec; font-family:-apple-system,'Inter',system-ui,sans-serif; min-height:100vh; display:flex; flex-direction:column; align-items:center; padding:30px 14px 22px; gap:18px; }
+body { background:#0a0810; color:#e7e3f0; font-family:-apple-system,'Inter',system-ui,sans-serif; min-height:100vh; display:flex; flex-direction:column; align-items:center; padding:30px 14px 22px; gap:18px; }
 header { text-align:center; display:flex; flex-direction:column; align-items:center; gap:10px; }
-header .badge { font-size:0.58rem; letter-spacing:0.24em; text-transform:uppercase; color:#8f8aa6; border:1px solid #262630; background:#111116; padding:4px 13px; border-radius:4px; }
-header h1 { font-size:1.75rem; font-weight:200; letter-spacing:0.4em; text-transform:uppercase; color:#eceaf4; padding-left:0.4em; }
-header p { font-size:0.7rem; color:#63636f; letter-spacing:0.18em; text-transform:uppercase; }
+header .badge { font-size:0.58rem; letter-spacing:0.24em; text-transform:uppercase; color:#9a8fd0; border:1px solid #2b2542; background:#140f1e; padding:4px 13px; border-radius:4px; }
+header h1 { font-size:1.75rem; font-weight:200; letter-spacing:0.4em; text-transform:uppercase; color:#ccc2f0; padding-left:0.4em; }
+header p { font-size:0.7rem; color:#6c6488; letter-spacing:0.18em; text-transform:uppercase; }
 
-.stage { position:relative; width:960px; max-width:calc(100vw - 28px); aspect-ratio:4/3; border-radius:10px; overflow:hidden; background:#0a0a0e; border:1px solid #1d1d24; }
+.stage { position:relative; width:960px; max-width:calc(100vw - 28px); aspect-ratio:4/3; border-radius:10px; overflow:hidden; background:#0b0813; border:1px solid #221c33; }
 .stage video, .stage canvas { position:absolute; inset:0; width:100%; height:100%; }
 #cam { object-fit:cover; transform:scaleX(-1); filter:brightness(0.42) saturate(0.7); }
 #paint { z-index:2; }
 #fx { z-index:3; pointer-events:none; }
 #hud { z-index:4; pointer-events:none; }
-.overlay { position:absolute; inset:0; z-index:5; display:flex; flex-direction:column; align-items:center; justify-content:center; gap:16px; text-align:center; background:rgba(8,8,11,0.92); padding:24px; transition:opacity 0.4s; }
+.overlay { position:absolute; inset:0; z-index:5; display:flex; flex-direction:column; align-items:center; justify-content:center; gap:16px; text-align:center; background:rgba(9,7,15,0.92); padding:24px; transition:opacity 0.4s; }
 .overlay.hidden { opacity:0; pointer-events:none; }
-.overlay h2 { font-weight:300; letter-spacing:0.1em; color:#d7d4e6; font-size:1.15rem; }
-.overlay p { font-size:0.85rem; color:#83838f; max-width:470px; line-height:1.6; }
+.overlay h2 { font-weight:300; letter-spacing:0.1em; color:#cbc0ee; font-size:1.15rem; }
+.overlay p { font-size:0.85rem; color:#8781a0; max-width:470px; line-height:1.6; }
 .overlay .err { color:#e07070; }
-.big-btn { padding:13px 28px; border-radius:6px; border:1px solid #4b45a8; background:#4640a0; color:#f2f0ff; cursor:pointer; font-size:0.9rem; letter-spacing:0.04em; transition:background 0.15s,border-color 0.15s; }
-.big-btn:hover { background:#5450b8; border-color:#5f5ac4; }
+.big-btn { padding:13px 28px; border-radius:6px; border:1px solid #5951b8; background:#4d45ac; color:#f3f0ff; cursor:pointer; font-size:0.9rem; letter-spacing:0.04em; transition:background 0.15s,border-color 0.15s; }
+.big-btn:hover { background:#5b53c2; border-color:#6a62d0; }
 
 /* animated loading dots — three oscillating dots that make it obvious the app is working */
 .dots { display:none; align-items:center; gap:8px; height:14px; vertical-align:middle; }
 .dots.on { display:inline-flex; }
-.dots i { width:8px; height:8px; border-radius:50%; background:#7d76c8; animation:dotBounce 1.2s infinite ease-in-out both; }
+.dots i { width:8px; height:8px; border-radius:50%; background:#8b7ee0; animation:dotBounce 1.2s infinite ease-in-out both; }
 .dots i:nth-child(2) { animation-delay:0.16s; }
 .dots i:nth-child(3) { animation-delay:0.32s; }
 .dots.sm { gap:5px; height:8px; }
-.dots.sm i { width:5px; height:5px; background:#8b84c0; }
+.dots.sm i { width:5px; height:5px; background:#9488cc; }
 @keyframes dotBounce { 0%,80%,100% { transform:translateY(0); opacity:0.3; } 40% { transform:translateY(-7px); opacity:1; } }
 
 .controls { width:960px; max-width:calc(100vw - 28px); display:flex; flex-direction:column; gap:10px; }
 .row { display:flex; gap:8px; align-items:center; flex-wrap:wrap; }
-.row .lbl { font-size:0.6rem; color:#54545f; letter-spacing:0.14em; text-transform:uppercase; min-width:58px; }
+.row .lbl { font-size:0.6rem; color:#57526c; letter-spacing:0.14em; text-transform:uppercase; min-width:58px; }
 .swatch { width:26px; height:26px; border-radius:50%; border:2px solid transparent; cursor:pointer; transition:transform 0.12s,border-color 0.12s; }
 .swatch:hover { transform:scale(1.1); }
-.swatch.on { border-color:#f0f0f5; }
-.chip { padding:6px 13px; border-radius:5px; border:1px solid #24242c; background:transparent; color:#77778a; cursor:pointer; font-size:0.72rem; letter-spacing:0.03em; transition:border-color 0.15s,color 0.15s,background 0.15s; }
-.chip:hover { border-color:#3a3a46; color:#adadba; }
-.chip.on { border-color:#4a44a0; color:#c8c4ec; background:#16161f; }
-.chip.rainbow.on { border-color:#4a44a0; color:#d6d2f2; background:#16161f; }
-.btn { flex:1; min-width:88px; padding:11px 6px; border-radius:5px; border:1px solid #202029; background:#0f0f14; color:#71717f; cursor:pointer; font-size:0.78rem; letter-spacing:0.03em; transition:border-color 0.15s,color 0.15s; text-align:center; }
-.btn:hover { border-color:#33333f; color:#c2c2ce; }
-.btn.rec-on { background:#1e1416; border-color:#a63b3b; color:#e08585; }
-.status { font-size:0.68rem; color:#4a4a56; text-align:center; letter-spacing:0.05em; min-height:15px; }
+.swatch.on { border-color:#efecfa; }
+.chip { padding:6px 13px; border-radius:5px; border:1px solid #272235; background:transparent; color:#847e9a; cursor:pointer; font-size:0.72rem; letter-spacing:0.03em; transition:border-color 0.15s,color 0.15s,background 0.15s; }
+.chip:hover { border-color:#3e3856; color:#b4aecb; }
+.chip.on { border-color:#5b51c4; color:#cdc6f0; background:#1a1428; }
+.chip.rainbow.on { border-color:#5b51c4; color:#d9d3f5; background:#1a1428; }
+.btn { flex:1; min-width:88px; padding:11px 6px; border-radius:5px; border:1px solid #241f31; background:#100c18; color:#78728c; cursor:pointer; font-size:0.78rem; letter-spacing:0.03em; transition:border-color 0.15s,color 0.15s; text-align:center; }
+.btn:hover { border-color:#3a3350; color:#c6c0d6; }
+.btn.rec-on { background:#20141a; border-color:#a63b4a; color:#e08595; }
+.status { font-size:0.68rem; color:#4d4763; text-align:center; letter-spacing:0.05em; min-height:15px; }
 
 /* gesture key */
-.key { display:flex; gap:14px; flex-wrap:wrap; align-items:center; background:#0d0d11; border:1px solid #1e1e26; border-radius:8px; padding:11px 15px; }
-.key .lbl { font-size:0.6rem; color:#63636f; letter-spacing:0.14em; text-transform:uppercase; min-width:58px; }
-.key .g { font-size:0.78rem; color:#93939f; display:flex; align-items:center; gap:6px; }
-.key .g b { color:#cdc9e6; font-weight:600; }
+.key { display:flex; gap:14px; flex-wrap:wrap; align-items:center; background:#0e0b15; border:1px solid #201b2c; border-radius:8px; padding:11px 15px; }
+.key .lbl { font-size:0.6rem; color:#68627e; letter-spacing:0.14em; text-transform:uppercase; min-width:58px; }
+.key .g { font-size:0.78rem; color:#948da6; display:flex; align-items:center; gap:6px; }
+.key .g b { color:#cfc8ee; font-weight:600; }
 .key.body-mode .hands-only { display:none; }
 
-.about { background:#0d0d11; border:1px solid #1a1a22; border-radius:8px; overflow:hidden; }
-.about-header { display:flex; justify-content:space-between; align-items:center; padding:11px 15px; cursor:pointer; font-size:0.7rem; color:#63636f; letter-spacing:0.12em; text-transform:uppercase; }
-.about-header:hover { color:#9a9aa6; }
-.about-body { padding:0 15px 15px; font-size:0.8rem; color:#75757f; line-height:1.7; display:none; }
+.about { background:#0e0b15; border:1px solid #1d1828; border-radius:8px; overflow:hidden; }
+.about-header { display:flex; justify-content:space-between; align-items:center; padding:11px 15px; cursor:pointer; font-size:0.7rem; color:#68627e; letter-spacing:0.12em; text-transform:uppercase; }
+.about-header:hover { color:#9c95b4; }
+.about-body { padding:0 15px 15px; font-size:0.8rem; color:#7a748e; line-height:1.7; display:none; }
 .about-body.open { display:block; }
-.about-body strong { color:#b0acce; }
-.about-body em { color:#7c9ab0; font-style:normal; }
+.about-body strong { color:#b3aad4; }
+.about-body em { color:#8090b8; font-style:normal; }
 
-footer { width:960px; max-width:calc(100vw - 28px); display:flex; justify-content:space-between; align-items:center; flex-wrap:wrap; gap:8px; margin-top:6px; padding-top:14px; border-top:1px solid #16161c; font-size:0.68rem; color:#3f3f4a; letter-spacing:0.05em; }
-footer a { color:#63636f; text-decoration:none; transition:color 0.15s; }
-footer a:hover { color:#9a94c8; }
+footer { width:960px; max-width:calc(100vw - 28px); display:flex; justify-content:space-between; align-items:center; flex-wrap:wrap; gap:8px; margin-top:6px; padding-top:14px; border-top:1px solid #191423; font-size:0.68rem; color:#453f56; letter-spacing:0.05em; }
+footer a { color:#68627e; text-decoration:none; transition:color 0.15s; }
+footer a:hover { color:#9a90d8; }
 </style>
 </head>
 <body>
