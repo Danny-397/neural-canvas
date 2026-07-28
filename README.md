@@ -74,10 +74,10 @@ MediaPipe Tasks Vision (WebAssembly + GPU) is loaded from a CDN; everything else
 ```
 index.html    → the app (open it, that's the whole thing)
 paint.html    → redirect to index.html (kept so earlier shared links still resolve)
-cppn.html     → an earlier experiment: an abstract generative-art tool built on a
-                CPPN/SIREN neural network that computes an image directly from pixel
-                coordinates. Kept for reference; the hand-painting app is the submission.
 preview.png   → social/share cover image
+archive/      → an earlier experiment, kept for reference: an abstract generative-art
+                tool built on a CPPN/SIREN neural network that computes an image directly
+                from pixel coordinates. The hand-painting app above is the submission.
 ```
 
 Run it locally over a secure context (the camera API requires `https://` or `localhost`):
