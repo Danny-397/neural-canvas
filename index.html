@@ -211,7 +211,7 @@ let recorder=null, recChunks=[], recording=false, recTimeout=null;
 
 // ── One-euro smoothing filter (kills hand-tracking jitter) ────────────────────
 class OneEuro{
-  constructor(minCut=2.0, beta=0.03, dCut=1.0){this.mc=minCut;this.beta=beta;this.dc=dCut;this.xP=null;this.dxP=0;this.tP=null;}
+  constructor(minCut=1.3, beta=0.05, dCut=1.0){this.mc=minCut;this.beta=beta;this.dc=dCut;this.xP=null;this.dxP=0;this.tP=null;}
   a(cut,dt){const tau=1/(2*Math.PI*cut);return 1/(1+tau/dt);}
   f(x,t){ if(this.xP===null){this.xP=x;this.tP=t;return x;} const dt=Math.max(1e-3,(t-this.tP)/1000);
     const dx=(x-this.xP)/dt, aD=this.a(this.dc,dt), dxH=aD*dx+(1-aD)*this.dxP;
@@ -240,7 +240,18 @@ document.querySelectorAll('.chip.mode').forEach(ch=>ch.addEventListener('click',
 }));
 
 function toggle(id,label,get,set){const el=document.getElementById(id);el.addEventListener('click',()=>{set(!get());el.textContent=label+': '+(get()?'on':'off');el.classList.toggle('on',get());});}
-toggle('twoHandToggle','2-hand colors',()=>twoHand,v=>twoHand=v);
+// 2-hand colors: needs a 2-hand model; rebuild the tracker when toggled so single-hand
+// use stays on the faster 1-hand model (smoother tracking)
+document.getElementById('twoHandToggle').addEventListener('click',async()=>{
+  twoHand=!twoHand; const el=document.getElementById('twoHandToggle');
+  el.textContent='2-hand colors: '+(twoHand?'on':'off'); el.classList.toggle('on',twoHand);
+  if(running && mode==='hands'){
+    setLoading('Switching hand tracking');
+    try{gestureModel&&gestureModel.close&&gestureModel.close();}catch(e){}
+    gestureModel=null;
+    try{await ensureModel(); statusEl.textContent='Pinch to paint';}catch(e){statusEl.textContent='Model load failed';}
+  }
+});
 toggle('bloomToggle','Bloom',()=>bloom,v=>bloom=v);
 document.getElementById('fsToggle').addEventListener('click',()=>{const st=document.getElementById('stage');if(!document.fullscreenElement){if(st.requestFullscreen)st.requestFullscreen();}else document.exitFullscreen();});
 document.addEventListener('fullscreenchange',()=>{const st=document.getElementById('stage');if(document.fullscreenElement){Object.assign(st.style,{width:'100vw',height:'100vh',maxWidth:'none',aspectRatio:'auto',borderRadius:'0'});}else{Object.assign(st.style,{width:'',height:'',maxWidth:'',aspectRatio:'',borderRadius:''});}setTimeout(resize,60);});
@@ -273,7 +284,7 @@ document.getElementById('stopCamBtn').addEventListener('click',stopCamera);
 async function getFileset(){ if(!fileset) fileset=await FilesetResolver.forVisionTasks(WASM); return fileset; }
 async function ensureModel(){
   const fs=await getFileset();
-  if(mode==='hands' && !gestureModel) gestureModel=await GestureRecognizer.createFromOptions(fs,{baseOptions:{modelAssetPath:GESTURE_URL,delegate:'GPU'},runningMode:'VIDEO',numHands:2});
+  if(mode==='hands' && !gestureModel) gestureModel=await GestureRecognizer.createFromOptions(fs,{baseOptions:{modelAssetPath:GESTURE_URL,delegate:'GPU'},runningMode:'VIDEO',numHands:twoHand?2:1});
   if(mode==='body' && !poseModel) poseModel=await PoseLandmarker.createFromOptions(fs,{baseOptions:{modelAssetPath:POSE_URL,delegate:'GPU'},runningMode:'VIDEO',numPoses:1});
 }
 async function startCamera(){
@@ -351,7 +362,7 @@ function handleHands(res){
     res.landmarks.forEach((hand,i)=>{
       const id='h'+i; seen[id]=true;
       const g=(res.gestures&&res.gestures[i]&&res.gestures[i][0])?res.gestures[i][0].categoryName:'None';
-      const pen=pens[id]||(pens[id]={});
+      const pen=pens[id]||(pens[id]={}); pen.miss=0;
       const gs=gstate[id]||(gstate[id]={last:'None',frames:0,fired:false});
       if(g!==gs.last){gs.last=g;gs.frames=0;gs.fired=false;} else gs.frames++;
 
@@ -385,7 +396,10 @@ function handleHands(res){
       } else { pen.drawing=false;pen.fx=null;pen.fy=null; drawCursor(tip.x,tip.y,'idle',colOv); }
     });
   }
-  Object.keys(pens).forEach(id=>{if(id[0]==='h'&&!seen[id]){pens[id].drawing=false;pens[id].fx=null;pens[id].erasing=false;}});
+  // grace period: a hand lost for just a frame or two shouldn't end the stroke —
+  // hold the pen so a brief tracking dropout doesn't chop a continuous signature
+  Object.keys(pens).forEach(id=>{if(id[0]==='h'&&!seen[id]){const p=pens[id];p.miss=(p.miss||0)+1;
+    if(p.miss>5){p.drawing=false;p.fx=null;p.fy=null;p.erasing=false;}}});
 }
 
 function handleBody(res){
