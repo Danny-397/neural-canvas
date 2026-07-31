@@ -211,7 +211,7 @@ let recorder=null, recChunks=[], recording=false, recTimeout=null;
 
 // ── One-euro smoothing filter (kills hand-tracking jitter) ────────────────────
 class OneEuro{
-  constructor(minCut=1.3, beta=0.05, dCut=1.0){this.mc=minCut;this.beta=beta;this.dc=dCut;this.xP=null;this.dxP=0;this.tP=null;}
+  constructor(minCut=0.9, beta=0.04, dCut=1.0){this.mc=minCut;this.beta=beta;this.dc=dCut;this.xP=null;this.dxP=0;this.tP=null;}
   a(cut,dt){const tau=1/(2*Math.PI*cut);return 1/(1+tau/dt);}
   f(x,t){ if(this.xP===null){this.xP=x;this.tP=t;return x;} const dt=Math.max(1e-3,(t-this.tP)/1000);
     const dx=(x-this.xP)/dt, aD=this.a(this.dc,dt), dxH=aD*dx+(1-aD)*this.dxP;
