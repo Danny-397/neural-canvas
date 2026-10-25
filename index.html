@@ -38,6 +38,8 @@ header p { font-size:0.7rem; color:#7c7398; letter-spacing:0.18em; text-transfor
 .overlay h2 { font-weight:300; letter-spacing:0.1em; color:#cbc0ee; font-size:1.15rem; }
 .overlay p { font-size:0.85rem; color:#8781a0; max-width:470px; line-height:1.6; }
 .overlay .err { color:#e07070; }
+.demo-link { background:none; border:none; color:#a59fe0; font-size:0.82rem; cursor:pointer; text-decoration:underline; text-underline-offset:3px; padding:4px; }
+.demo-link:hover { color:#d8d4ff; }
 .big-btn { padding:13px 28px; border-radius:6px; border:1px solid #5951b8; background:#4d45ac; color:#f3f0ff; cursor:pointer; font-size:0.9rem; letter-spacing:0.04em; transition:background 0.15s,border-color 0.15s; }
 .big-btn:hover { background:#5b53c2; border-color:#6a62d0; }
 
@@ -105,6 +107,7 @@ footer a:hover { color:#9a90d8; }
     <p id="ovText">Allow camera access, then <strong>pinch your thumb and index finger</strong> together to paint. Use gestures to clear, erase, and change color; the gesture key is below. Works with both hands.</p>
     <div class="dots" id="loadDots"><i></i><i></i><i></i></div>
     <button class="big-btn" id="startBtn">Start camera</button>
+    <button class="demo-link" id="demoBtn" type="button">No webcam? Watch the brush engine paint on its own →</button>
   </div>
 </div>
 
@@ -290,6 +293,7 @@ async function ensureModel(){
 }
 async function startCamera(){
   const b=document.getElementById('startBtn');
+  if(typeof stopDemo==='function')stopDemo();
   try{
     ovTitle.textContent='Loading…';ovText.textContent='Requesting camera and downloading the model (a few MB, first time only).';b.style.display='none';loadDots.classList.add('on');
     setLoading('Requesting camera');
@@ -301,9 +305,45 @@ async function startCamera(){
     document.getElementById('stopCamBtn').style.display='';
     requestAnimationFrame(loop);
   }catch(e){console.error(e);overlay.classList.remove('hidden');ovTitle.textContent='Couldn’t start';
-    ovText.innerHTML='<span class="err">'+(e.name==='NotAllowedError'?'Camera permission denied. Allow it and reload.':(e.message||e))+'</span>';
-    loadDots.classList.remove('on');b.style.display='';b.textContent='Retry';statusEl.textContent='Error';}
+    const why={
+      NotAllowedError:'Camera permission was denied. Allow camera access for this site in your browser’s address bar, then retry.',
+      NotFoundError:'No camera was found on this device.',
+      OverconstrainedError:'No camera on this device supports the requested mode.',
+      NotReadableError:'The camera is in use by another app (a video call, maybe). Close it, then retry.',
+      SecurityError:'Camera access is blocked on this page.'
+    }[e.name] || (e.message ? String(e.message) : 'Something went wrong starting the camera or loading the model.');
+    ovText.innerHTML='';const err=document.createElement('span');err.className='err';err.textContent=why;ovText.appendChild(err);
+    loadDots.classList.remove('on');b.style.display='';b.textContent='Retry';statusEl.textContent='Error';
+    document.getElementById('demoBtn').style.display='';}
 }
+
+// ── Camera-free demo: the attract-mode brush engine, for visitors without a webcam ──
+let demoRunning=false;
+function startDemo(){
+  if(running)return;
+  overlay.classList.add('hidden');resize();
+  demoRunning=true;enterAttract();
+  statusEl.textContent='Demo · no camera. Click the canvas to go back';
+  // One click on the stage ends the demo and brings back the camera prompt.
+  document.getElementById('stage').addEventListener('click',stopDemo,{once:true});
+  requestAnimationFrame(demoLoop);
+}
+function stopDemo(){
+  if(!demoRunning)return;
+  demoRunning=false;exitAttract();pctx.clearRect(0,0,paint.width,paint.height);hctx.clearRect(0,0,hud.width,hud.height);
+  overlay.classList.remove('hidden');statusEl.textContent='';
+}
+function demoLoop(){
+  if(!demoRunning||running){ if(demoRunning){demoRunning=false;} return; }
+  updateParticles();
+  hctx.clearRect(0,0,hud.width,hud.height);
+  if(fade){pctx.save();pctx.globalCompositeOperation='destination-out';pctx.fillStyle='rgba(0,0,0,0.06)';pctx.fillRect(0,0,paint.width,paint.height);pctx.restore();}
+  drawAttractFrame();
+  requestAnimationFrame(demoLoop);
+}
+// stopPropagation: the button sits inside #stage, so without it this same click
+// would bubble into the exit-demo listener startDemo() attaches to #stage.
+document.getElementById('demoBtn').addEventListener('click',e=>{e.stopPropagation();startDemo();});
 function stopCamera(){
   if(!running&&!stream)return; running=false;
   if(recording){if(recTimeout)clearTimeout(recTimeout);if(recorder&&recorder.state!=='inactive')recorder.stop();}
@@ -352,7 +392,7 @@ function enterAttract(){attract=true;const a=document.createElement('canvas');a.
   savedAttract={symmetry,brush,rainbow,fade,art:a};symmetry='6';brush='neon';rainbow=true;fade=true;pctx.clearRect(0,0,paint.width,paint.height);attractPen={};attractT=0;statusEl.textContent='Idle demo. Raise your hand to paint';}
 function exitAttract(){attract=false;if(!savedAttract)return;symmetry=savedAttract.symmetry;brush=savedAttract.brush;rainbow=savedAttract.rainbow;fade=savedAttract.fade;pctx.clearRect(0,0,paint.width,paint.height);pctx.drawImage(savedAttract.art,0,0);savedAttract=null;refreshColorUI();statusEl.textContent=mode==='body'?'Raise a hand to paint':'Pinch to paint';}
 function drawAttractFrame(){attractT+=0.03;const cx=paint.width/2,cy=paint.height/2,R=Math.min(cx,cy);const rr=R*(0.25+0.55*(0.5+0.5*Math.sin(attractT*0.21)));const x=cx+Math.cos(attractT)*rr,y=cy+Math.sin(attractT*1.4)*rr;if(attractPen.init)stroke(attractPen.x,attractPen.y,x,y,attractPen,1);attractPen.x=x;attractPen.y=y;attractPen.lt=performance.now();attractPen.init=true;
-  hctx.save();hctx.fillStyle='rgba(184,168,255,0.55)';hctx.font='600 15px system-ui,sans-serif';hctx.textAlign='center';hctx.fillText('Raise your hand to paint',cx,paint.height-22);hctx.restore();}
+  hctx.save();hctx.fillStyle='rgba(184,168,255,0.55)';hctx.font='600 15px system-ui,sans-serif';hctx.textAlign='center';hctx.fillText(demoRunning?'Demo · no camera — click to go back':'Raise your hand to paint',cx,paint.height-22);hctx.restore();}
 function handColor(hd){const name=(hd&&hd[0])?hd[0].categoryName:'Right';return name==='Left'?COLORS[0]:COLORS[4];}
 
 function handleHands(res){
