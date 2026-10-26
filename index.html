@@ -277,7 +277,8 @@ const COLOR_NAMES=['Pink','Orange','Yellow','Green','Cyan','Blue','Violet','Whit
 COLORS.forEach((c,i)=>{const s=document.createElement('button');s.type='button';s.className='swatch'+(i===colorIdx?' on':'');s.style.background=c;s.setAttribute('aria-label',COLOR_NAMES[i]);
   s.addEventListener('click',()=>{colorIdx=i;rainbow=false;refreshColorUI();});pal.appendChild(s);});
 const rbChip=document.createElement('button');rbChip.type='button';rbChip.className='chip rainbow';rbChip.textContent='Rainbow';
-rbChip.addEventListener('click',()=>{rainbow=!rainbow;refreshColorUI();});pal.appendChild(rbChip);
+// toggle what the button shows: the idle preview forces rainbow on underneath it
+rbChip.addEventListener('click',()=>{rainbow=!rbChip.classList.contains('on');refreshColorUI();});pal.appendChild(rbChip);
 function refreshColorUI(){document.querySelectorAll('.swatch').forEach((e,i)=>e.classList.toggle('on',!rainbow&&i===colorIdx));rbChip.classList.toggle('on',rainbow);syncPressed();}
 // mirror the visual "on" state into aria-pressed so screen readers hear which option is selected
 function syncPressed(){document.querySelectorAll('.swatch,.chip').forEach(e=>e.setAttribute('aria-pressed',e.classList.contains('on')));}
@@ -466,7 +467,10 @@ function updateParticles(){fctx.clearRect(0,0,fx.width,fx.height);if(!particles.
 // ── Attract / idle mode (auto mandala when nobody's using it) ─────────────────
 function enterAttract(){attract=true;const a=document.createElement('canvas');a.width=paint.width;a.height=paint.height;a.getContext('2d').drawImage(paint,0,0);
   savedAttract={symmetry,brush,rainbow,fade,art:a};symmetry='6';brush='neon';rainbow=true;fade=true;pctx.clearRect(0,0,paint.width,paint.height);attractPen={};attractT=0;statusEl.textContent='Idle demo. Raise your hand to paint';}
-function exitAttract(){attract=false;if(!savedAttract)return;symmetry=savedAttract.symmetry;brush=savedAttract.brush;rainbow=savedAttract.rainbow;fade=savedAttract.fade;pctx.clearRect(0,0,paint.width,paint.height);pctx.drawImage(savedAttract.art,0,0);savedAttract=null;refreshColorUI();statusEl.textContent=mode==='body'?'Raise a hand to paint':'Pinch to paint';}
+function exitAttract(){attract=false;if(!savedAttract)return;fade=savedAttract.fade;pctx.clearRect(0,0,paint.width,paint.height);pctx.drawImage(savedAttract.art,0,0);savedAttract=null;
+  // Restore from the controls, not the snapshot: someone may have picked a brush,
+  // symmetry or rainbow while the preview was running, and the buttons show that choice.
+  brush=document.querySelector('.chip.brush.on').dataset.b;symmetry=document.querySelector('.chip.sym.on').dataset.s;rainbow=rbChip.classList.contains('on');refreshColorUI();statusEl.textContent=mode==='body'?'Raise a hand to paint':'Pinch to paint';}
 function drawAttractFrame(){attractT+=0.03;const cx=paint.width/2,cy=paint.height/2,R=Math.min(cx,cy);const rr=R*(0.25+0.55*(0.5+0.5*Math.sin(attractT*0.21)));const x=cx+Math.cos(attractT)*rr,y=cy+Math.sin(attractT*1.4)*rr;if(attractPen.init)stroke(attractPen.x,attractPen.y,x,y,attractPen,1);attractPen.x=x;attractPen.y=y;attractPen.lt=performance.now();attractPen.init=true;
   if(ambient)return;   // the start prompt already says what to do
   hctx.save();hctx.fillStyle='rgba(184,168,255,0.55)';hctx.font='600 15px system-ui,sans-serif';hctx.textAlign='center';hctx.fillText(demoRunning?'Demo · no camera — click to go back':'Raise your hand to paint',cx,paint.height-22);hctx.restore();}
