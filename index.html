@@ -20,73 +20,119 @@
 <meta name="twitter:image" content="https://danny-397.github.io/neural-canvas/preview.png">
 <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><rect width='100' height='100' rx='22' fill='%23120a2e'/><circle cx='50' cy='50' r='27' fill='none' stroke='%238860f0' stroke-width='7'/><circle cx='50' cy='50' r='8' fill='%23b8a8ff'/></svg>">
 <style>
+:root {
+  color-scheme: dark;
+  /* surfaces */
+  --bg: #0a0810;
+  --surface: #0f0c17;
+  --surface-2: #17121f;
+  --line: #231d30;
+  --line-strong: #3a3350;
+  /* text */
+  --text: #ece8f6;
+  --text-2: #aaa3c0;
+  --text-3: #8d86a6;
+  /* brand */
+  --accent: #5049b4;
+  --accent-hover: #5d56c4;
+  --accent-text: #bab1f6;
+  --danger: #e5848f;
+  /* scale */
+  --s-1: 4px; --s-2: 8px; --s-3: 12px; --s-4: 16px; --s-5: 24px; --s-6: 32px; --s-7: 48px;
+  --r-sm: 6px; --r-md: 10px;
+  --w: 960px;
+  --ease: cubic-bezier(.2, .7, .2, 1);
+  --fast: 140ms; --med: 220ms;
+}
 * { box-sizing: border-box; margin: 0; padding: 0; }
-body { background:#0a0810; color:#e7e3f0; font-family:-apple-system,'Inter',system-ui,sans-serif; min-height:100vh; display:flex; flex-direction:column; align-items:center; padding:30px 14px 22px; gap:18px; }
-header { text-align:center; display:flex; flex-direction:column; align-items:center; gap:10px; }
-header .badge { font-size:0.58rem; letter-spacing:0.24em; text-transform:uppercase; color:#9a8fd0; border:1px solid #2b2542; background:#140f1e; padding:4px 13px; border-radius:4px; }
-header h1 { font-size:1.75rem; font-weight:200; letter-spacing:0.4em; text-transform:uppercase; color:#ccc2f0; padding-left:0.4em; }
-header p { font-size:0.7rem; color:#7c7398; letter-spacing:0.18em; text-transform:uppercase; }
+button { font: inherit; color: inherit; }
+body { background: var(--bg); color: var(--text); font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', system-ui, sans-serif; font-size: 15px; line-height: 1.5; -webkit-font-smoothing: antialiased; min-height: 100vh; display: flex; flex-direction: column; align-items: center; padding: var(--s-7) var(--s-4) var(--s-5); gap: var(--s-5); }
+:focus-visible { outline: 2px solid var(--accent-text); outline-offset: 2px; }
 
-.stage { position:relative; width:960px; max-width:calc(100vw - 28px); aspect-ratio:4/3; border-radius:10px; overflow:hidden; background:#0b0813; border:1px solid #221c33; }
-.stage video, .stage canvas { position:absolute; inset:0; width:100%; height:100%; }
-#cam { object-fit:cover; transform:scaleX(-1); filter:brightness(0.42) saturate(0.7); }
-#paint { z-index:2; }
-#fx { z-index:3; pointer-events:none; }
-#hud { z-index:4; pointer-events:none; }
-.overlay { position:absolute; inset:0; z-index:5; display:flex; flex-direction:column; align-items:center; justify-content:center; gap:16px; text-align:center; background:rgba(9,7,15,0.92); padding:24px; transition:opacity 0.4s; }
-.overlay.hidden { opacity:0; pointer-events:none; }
-.overlay h2 { font-weight:300; letter-spacing:0.1em; color:#cbc0ee; font-size:1.15rem; }
-.overlay p { font-size:0.85rem; color:#8781a0; max-width:470px; line-height:1.6; }
-.overlay .err { color:#e07070; }
-.demo-link { background:none; border:none; color:#a59fe0; font-size:0.82rem; cursor:pointer; text-decoration:underline; text-underline-offset:3px; padding:4px; }
-.demo-link:hover { color:#d8d4ff; }
-.big-btn { padding:13px 28px; border-radius:6px; border:1px solid #5951b8; background:#4d45ac; color:#f3f0ff; cursor:pointer; font-size:0.9rem; letter-spacing:0.04em; transition:background 0.15s,border-color 0.15s; }
-.big-btn:hover { background:#5b53c2; border-color:#6a62d0; }
+header { text-align: center; display: flex; flex-direction: column; align-items: center; gap: var(--s-2); }
+header .badge { font-size: 12px; font-weight: 500; color: var(--text-3); border: 1px solid var(--line); padding: 2px var(--s-2); border-radius: var(--r-sm); margin-bottom: var(--s-1); }
+header h1 { font-size: clamp(30px, 4.2vw, 42px); font-weight: 600; letter-spacing: -0.02em; line-height: 1.1; }
+header p { font-size: 16px; color: var(--text-2); }
 
-/* animated loading dots — three oscillating dots that make it obvious the app is working */
-.dots { display:none; align-items:center; gap:8px; height:14px; vertical-align:middle; }
-.dots.on { display:inline-flex; }
-.dots i { width:8px; height:8px; border-radius:50%; background:#8b7ee0; animation:dotBounce 1.2s infinite ease-in-out both; }
-.dots i:nth-child(2) { animation-delay:0.16s; }
-.dots i:nth-child(3) { animation-delay:0.32s; }
-.dots.sm { gap:5px; height:8px; }
-.dots.sm i { width:5px; height:5px; background:#9488cc; }
-@keyframes dotBounce { 0%,80%,100% { transform:translateY(0); opacity:0.3; } 40% { transform:translateY(-7px); opacity:1; } }
+main { width: var(--w); max-width: 100%; display: flex; flex-direction: column; gap: var(--s-4); }
+.stage { position: relative; width: 100%; aspect-ratio: 4/3; border-radius: var(--r-md); overflow: hidden; background: var(--surface); border: 1px solid var(--line); }
+.stage video, .stage canvas { position: absolute; inset: 0; width: 100%; height: 100%; }
+#cam { object-fit: cover; transform: scaleX(-1); filter: brightness(0.42) saturate(0.7); }
+#paint { z-index: 2; }
+#fx { z-index: 3; pointer-events: none; }
+#hud { z-index: 4; pointer-events: none; }
+/* The scrim is darkest behind the text and opens toward the edges, so the ambient brush preview stays visible. */
+.overlay { position: absolute; inset: 0; z-index: 5; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: var(--s-4); text-align: center; padding: var(--s-5); background: radial-gradient(ellipse 60% 55% at 50% 50%, rgba(10,8,16,0.94) 0%, rgba(10,8,16,0.8) 50%, rgba(10,8,16,0.35) 100%); transition: opacity var(--med) var(--ease); }
+.overlay.hidden { opacity: 0; pointer-events: none; }
+.overlay h2 { font-size: 22px; font-weight: 600; letter-spacing: -0.01em; }
+.overlay p { font-size: 15px; color: var(--text-2); max-width: 440px; line-height: 1.6; }
+.overlay p strong { color: var(--text); font-weight: 600; }
+.overlay .err { color: var(--danger); }
+.big-btn { min-height: 44px; padding: 0 var(--s-5); border-radius: var(--r-sm); border: 1px solid transparent; background: var(--accent); color: #fff; cursor: pointer; font-size: 15px; font-weight: 500; transition: background var(--fast) var(--ease); }
+.big-btn:hover { background: var(--accent-hover); }
+.big-btn:active { background: var(--accent); }
+.demo-link { background: none; border: none; color: var(--accent-text); font-size: 14px; cursor: pointer; text-decoration: underline; text-underline-offset: 3px; padding: var(--s-1); transition: color var(--fast) var(--ease); }
+.demo-link:hover { color: var(--text); }
 
-.controls { width:960px; max-width:calc(100vw - 28px); display:flex; flex-direction:column; gap:10px; }
-.row { display:flex; gap:8px; align-items:center; flex-wrap:wrap; }
-.row .lbl { font-size:0.6rem; color:#7c7697; letter-spacing:0.14em; text-transform:uppercase; min-width:58px; }
-.swatch { width:26px; height:26px; border-radius:50%; border:2px solid transparent; cursor:pointer; transition:transform 0.12s,border-color 0.12s; }
-.swatch:hover { transform:scale(1.1); }
-.swatch.on { border-color:#efecfa; }
-.chip { padding:6px 13px; border-radius:5px; border:1px solid #272235; background:transparent; color:#847e9a; cursor:pointer; font-size:0.72rem; letter-spacing:0.03em; transition:border-color 0.15s,color 0.15s,background 0.15s; }
-.chip:hover { border-color:#3e3856; color:#b4aecb; }
-.chip.on { border-color:#5b51c4; color:#cdc6f0; background:#1a1428; }
-.chip.rainbow.on { border-color:#5b51c4; color:#d9d3f5; background:#1a1428; }
-.btn { flex:1; min-width:88px; padding:11px 6px; border-radius:5px; border:1px solid #241f31; background:#100c18; color:#807a93; cursor:pointer; font-size:0.78rem; letter-spacing:0.03em; transition:border-color 0.15s,color 0.15s; text-align:center; }
-.btn:hover { border-color:#3a3350; color:#c6c0d6; }
-.btn.rec-on { background:#20141a; border-color:#a63b4a; color:#e08595; }
-.status { font-size:0.68rem; color:#7e769d; text-align:center; letter-spacing:0.05em; min-height:15px; }
+/* animated loading dots: three oscillating dots that make it obvious the app is working */
+.dots { display: none; align-items: center; gap: var(--s-2); height: 14px; vertical-align: middle; }
+.dots.on { display: inline-flex; }
+.dots i { width: 8px; height: 8px; border-radius: 50%; background: var(--accent-text); animation: dotBounce 1.2s infinite ease-in-out both; }
+.dots i:nth-child(2) { animation-delay: 0.16s; }
+.dots i:nth-child(3) { animation-delay: 0.32s; }
+.dots.sm { gap: 5px; height: 8px; }
+.dots.sm i { width: 5px; height: 5px; }
+@keyframes dotBounce { 0%,80%,100% { transform: translateY(0); opacity: 0.3; } 40% { transform: translateY(-6px); opacity: 1; } }
+
+.controls { display: flex; flex-direction: column; gap: var(--s-3); }
+.row { display: flex; gap: var(--s-2); align-items: center; flex-wrap: wrap; }
+.row .lbl, .key .lbl { font-size: 13px; font-weight: 500; color: var(--text-3); min-width: 76px; }
+.swatch { width: 28px; height: 28px; border-radius: 50%; border: none; cursor: pointer; transition: box-shadow var(--fast) var(--ease); }
+.swatch:hover { box-shadow: 0 0 0 2px var(--bg), 0 0 0 4px var(--line-strong); }
+.swatch.on { box-shadow: 0 0 0 2px var(--bg), 0 0 0 4px var(--text); }
+.chip { min-height: 34px; padding: 0 var(--s-3); border-radius: var(--r-sm); border: 1px solid var(--line); background: transparent; color: var(--text-2); cursor: pointer; font-size: 13px; transition: border-color var(--fast) var(--ease), color var(--fast) var(--ease), background var(--fast) var(--ease); }
+.chip:hover { border-color: var(--line-strong); color: var(--text); }
+.chip.on { border-color: var(--accent-hover); color: var(--text); background: var(--surface-2); }
+.btn { flex: 1; min-width: 96px; min-height: 44px; padding: 0 var(--s-2); border-radius: var(--r-sm); border: 1px solid var(--line); background: var(--surface); color: var(--text-2); cursor: pointer; font-size: 14px; text-align: center; transition: border-color var(--fast) var(--ease), color var(--fast) var(--ease); }
+.btn:hover { border-color: var(--line-strong); color: var(--text); }
+.btn.rec-on { background: #1f1318; border-color: #a63b4a; color: var(--danger); }
+.status { font-size: 13px; color: var(--text-3); text-align: center; min-height: 20px; font-variant-numeric: tabular-nums; }
 
 /* gesture key */
-.key { display:flex; gap:14px; flex-wrap:wrap; align-items:center; background:#0e0b15; border:1px solid #201b2c; border-radius:8px; padding:11px 15px; }
-.key .lbl { font-size:0.6rem; color:#7c7694; letter-spacing:0.14em; text-transform:uppercase; min-width:58px; }
-.key .g { font-size:0.78rem; color:#948da6; display:flex; align-items:center; gap:6px; }
-.key .g b { color:#cfc8ee; font-weight:600; }
-.key.body-mode .hands-only { display:none; }
+.key { display: flex; gap: var(--s-2) var(--s-4); flex-wrap: wrap; align-items: center; background: var(--surface); border: 1px solid var(--line); border-radius: var(--r-md); padding: var(--s-3) var(--s-4); }
+.key .g { font-size: 13px; color: var(--text-2); display: flex; align-items: center; gap: 6px; }
+.key .g b { color: var(--text); font-weight: 500; }
+.key.body-mode .hands-only { display: none; }
 
-.about { background:#0e0b15; border:1px solid #1d1828; border-radius:8px; overflow:hidden; }
-.about-header { display:flex; justify-content:space-between; align-items:center; padding:11px 15px; cursor:pointer; font-size:0.7rem; color:#7c7694; letter-spacing:0.12em; text-transform:uppercase; }
-.about-header:hover { color:#9c95b4; }
-.about-body { padding:0 15px 15px; font-size:0.8rem; color:#7a748e; line-height:1.7; display:none; }
-.about-body.open { display:block; }
-.about-body strong { color:#b3aad4; }
-.about-body em { color:#8090b8; font-style:normal; }
+.about { border: 1px solid var(--line); border-radius: var(--r-md); overflow: hidden; }
+.about-header { width: 100%; display: flex; justify-content: space-between; align-items: center; min-height: 44px; padding: 0 var(--s-4); background: var(--surface); border: none; cursor: pointer; font-size: 14px; font-weight: 500; color: var(--text-2); text-align: left; transition: color var(--fast) var(--ease); }
+.about-header:hover { color: var(--text); }
+.about-header .arrow { transition: transform var(--fast) var(--ease); }
+.about-header[aria-expanded="true"] .arrow { transform: rotate(90deg); }
+.about-body { padding: 0 var(--s-4) var(--s-4); background: var(--surface); font-size: 14px; color: var(--text-2); line-height: 1.7; display: none; }
+.about-body.open { display: block; }
+.about-body p + p { margin-top: var(--s-3); }
+.about-body strong { color: var(--text); font-weight: 600; }
+.about-body em { color: var(--accent-text); font-style: normal; }
+.about-body .note { font-size: 13px; color: var(--text-3); }
 
-footer { width:960px; max-width:calc(100vw - 28px); display:flex; justify-content:space-between; align-items:center; flex-wrap:wrap; gap:8px; margin-top:6px; padding-top:14px; border-top:1px solid #191423; font-size:0.68rem; color:#7f769a; letter-spacing:0.05em; }
+footer { width: var(--w); max-width: 100%; display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: var(--s-2); padding-top: var(--s-4); border-top: 1px solid var(--line); font-size: 13px; color: var(--text-3); }
 /* Underlined so the link is distinguishable without relying on colour alone. */
-    footer a { color:#7c7694; text-decoration:underline; text-underline-offset:2px; transition:color 0.15s; }
-footer a:hover { color:#9a90d8; }
+footer a { color: var(--text-2); text-decoration: underline; text-underline-offset: 2px; transition: color var(--fast) var(--ease); }
+footer a:hover { color: var(--text); }
+
+@media (max-width: 600px) {
+  body { padding-top: var(--s-6); gap: var(--s-4); }
+  .row .lbl, .key .lbl { width: 100%; }
+  .chip { min-height: 40px; }
+  .swatch { width: 32px; height: 32px; }
+  .btn { min-width: calc(50% - var(--s-1)); }
+  .overlay { gap: var(--s-3); }
+  .overlay p { font-size: 14px; }
+}
+@media (prefers-reduced-motion: reduce) {
+  *, *::before, *::after { animation-duration: 0.01ms !important; animation-iteration-count: 1 !important; transition-duration: 0.01ms !important; }
+}
 </style>
 </head>
 <body>
@@ -94,9 +140,10 @@ footer a:hover { color:#9a90d8; }
 <header>
   <span class="badge">Hack the Arts 2026</span>
   <h1>Neural Canvas</h1>
-  <p>Paint With Your Hands</p>
+  <p>Paint light in mid-air with your bare hands.</p>
 </header>
 
+<main>
 <div class="stage" id="stage">
   <video id="cam" autoplay playsinline muted></video>
   <canvas id="paint"></canvas>
@@ -164,16 +211,17 @@ footer a:hover { color:#9a90d8; }
   </div>
 
   <div class="about" id="aboutBox">
-    <div class="about-header" id="aboutToggle"><span>How it works</span><span id="aboutArrow">›</span></div>
+    <button class="about-header" id="aboutToggle" type="button" aria-expanded="false" aria-controls="aboutBody"><span>How it works</span><span class="arrow" aria-hidden="true">›</span></button>
     <div class="about-body" id="aboutBody">
-      <p>A trained neural network <strong>watches your hands</strong>, not the art. Each webcam frame is fed to Google's <strong>MediaPipe</strong> gesture &amp; hand model, which locates <em>21 3D points per hand</em> in real time, entirely in your browser with no server.</p><br>
-      <p>The app reads those points: your <em>index fingertip</em> is the brush, and a <em>pinch</em> (thumb + index together) is the pen. Gestures like ✊ fist and ✋ open palm are classified by the model to clear and erase. A one-euro filter smooths the tracking so lines are clean. <strong>Symmetry</strong> mirrors every stroke into a live kaleidoscope, and <strong>Body</strong> mode swaps in a full-body pose model so you paint with your whole body.</p><br>
-      <p style="color:#45456a;font-size:0.74rem;">The machine doesn't make the art; <strong>you</strong> do. But it couldn't exist without it: there's no way to paint in mid-air unless a neural network perceives your motion about 60 times a second. Built for Hack the Arts 2026.</p>
+      <p>A trained neural network <strong>watches your hands</strong>, not the art. Each webcam frame is fed to Google's <strong>MediaPipe</strong> gesture &amp; hand model, which locates <em>21 3D points per hand</em> in real time, entirely in your browser with no server.</p>
+      <p>The app reads those points: your <em>index fingertip</em> is the brush, and a <em>pinch</em> (thumb + index together) is the pen. Gestures like ✊ fist and ✋ open palm are classified by the model to clear and erase. A one-euro filter smooths the tracking so lines are clean. <strong>Symmetry</strong> mirrors every stroke into a live kaleidoscope, and <strong>Body</strong> mode swaps in a full-body pose model so you paint with your whole body.</p>
+      <p class="note">The machine doesn't make the art; <strong>you</strong> do. But it couldn't exist without it: there's no way to paint in mid-air unless a neural network perceives your motion about 60 times a second. Built for Hack the Arts 2026.</p>
     </div>
   </div>
 
-  <div class="status" id="status">Load the model to begin…</div>
+  <div class="status" id="status" role="status" aria-live="polite">Load the model to begin…</div>
 </div>
+</main>
 
 <footer>
   <span>Neural Canvas · painting from mid-air motion</span>
@@ -225,11 +273,15 @@ class OneEuro{
 
 // ── Palette UI (+ rainbow) ────────────────────────────────────────────────────
 const pal=document.getElementById('palette');
-COLORS.forEach((c,i)=>{const s=document.createElement('div');s.className='swatch'+(i===colorIdx?' on':'');s.style.background=c;s.style.color=c;
+const COLOR_NAMES=['Pink','Orange','Yellow','Green','Cyan','Blue','Violet','White'];
+COLORS.forEach((c,i)=>{const s=document.createElement('button');s.type='button';s.className='swatch'+(i===colorIdx?' on':'');s.style.background=c;s.setAttribute('aria-label',COLOR_NAMES[i]);
   s.addEventListener('click',()=>{colorIdx=i;rainbow=false;refreshColorUI();});pal.appendChild(s);});
-const rbChip=document.createElement('button');rbChip.className='chip rainbow';rbChip.textContent='Rainbow';
+const rbChip=document.createElement('button');rbChip.type='button';rbChip.className='chip rainbow';rbChip.textContent='Rainbow';
 rbChip.addEventListener('click',()=>{rainbow=!rainbow;refreshColorUI();});pal.appendChild(rbChip);
-function refreshColorUI(){document.querySelectorAll('.swatch').forEach((e,i)=>e.classList.toggle('on',!rainbow&&i===colorIdx));rbChip.classList.toggle('on',rainbow);}
+function refreshColorUI(){document.querySelectorAll('.swatch').forEach((e,i)=>e.classList.toggle('on',!rainbow&&i===colorIdx));rbChip.classList.toggle('on',rainbow);syncPressed();}
+// mirror the visual "on" state into aria-pressed so screen readers hear which option is selected
+function syncPressed(){document.querySelectorAll('.swatch,.chip').forEach(e=>e.setAttribute('aria-pressed',e.classList.contains('on')));}
+document.addEventListener('click',e=>{if(e.target.closest('.chip,.swatch'))syncPressed();});
 function curColor(){return rainbow?`hsl(${hue|0},100%,62%)`:COLORS[colorIdx];}
 function nextColor(){rainbow=false;colorIdx=(colorIdx+1)%COLORS.length;refreshColorUI();statusEl.textContent='Color changed';}
 
@@ -274,7 +326,7 @@ function pushUndo(){const c=document.createElement('canvas');c.width=paint.width
 function undo(){if(!undoStack.length){statusEl.textContent='Nothing to undo';return;}const c=undoStack.pop();pctx.clearRect(0,0,paint.width,paint.height);pctx.drawImage(c,0,0);statusEl.textContent='Undo';}
 document.getElementById('saveBtn').addEventListener('click',()=>{const out=document.createElement('canvas');out.width=paint.width;out.height=paint.height;const o=out.getContext('2d');paintBg(o,out.width,out.height);o.drawImage(paint,0,0);o.drawImage(fx,0,0);const a=document.createElement('a');a.download='neural-canvas-'+Date.now()+'.png';a.href=out.toDataURL('image/png');a.click();statusEl.textContent='Saved';});
 document.getElementById('recBtn').addEventListener('click',toggleRecord);
-document.getElementById('aboutToggle').addEventListener('click',()=>{const b=document.getElementById('aboutBody');b.classList.toggle('open');document.getElementById('aboutArrow').textContent=b.classList.contains('open')?'↓':'›';});
+document.getElementById('aboutToggle').addEventListener('click',e=>{const open=document.getElementById('aboutBody').classList.toggle('open');e.currentTarget.setAttribute('aria-expanded',open);});
 
 // ── Sizing ───────────────────────────────────────────────────────────────────
 function resize(){const r=paint.getBoundingClientRect();const w=Math.round(r.width),h=Math.round(r.height);if(w===paint.width&&h===paint.height)return;
@@ -294,6 +346,7 @@ async function ensureModel(){
 async function startCamera(){
   const b=document.getElementById('startBtn');
   if(typeof stopDemo==='function')stopDemo();
+  stopAmbient();   // after stopDemo, which hands back to the ambient preview
   try{
     ovTitle.textContent='Loading…';ovText.textContent='Requesting camera and downloading the model (a few MB, first time only).';b.style.display='none';loadDots.classList.add('on');
     setLoading('Requesting camera');
@@ -321,6 +374,7 @@ async function startCamera(){
 let demoRunning=false;
 function startDemo(){
   if(running)return;
+  stopAmbient();
   overlay.classList.add('hidden');resize();
   demoRunning=true;enterAttract();
   statusEl.textContent='Demo · no camera. Click the canvas to go back';
@@ -332,6 +386,28 @@ function stopDemo(){
   if(!demoRunning)return;
   demoRunning=false;exitAttract();pctx.clearRect(0,0,paint.width,paint.height);hctx.clearRect(0,0,hud.width,hud.height);
   overlay.classList.remove('hidden');statusEl.textContent='';
+  startAmbient();
+}
+// ── Ambient preview: the brush engine paints quietly behind the start prompt, so the
+// first screen shows what the app makes instead of an empty box. Skipped for reduced motion.
+let ambient=false;
+const reduceMotion=matchMedia('(prefers-reduced-motion: reduce)').matches;
+function startAmbient(){
+  if(running||demoRunning||ambient||reduceMotion)return;
+  const msg=statusEl.textContent;resize();ambient=true;enterAttract();statusEl.textContent=msg;
+  requestAnimationFrame(ambientLoop);
+}
+function stopAmbient(){
+  if(!ambient)return;
+  const msg=statusEl.textContent;ambient=false;exitAttract();statusEl.textContent=msg;
+  pctx.clearRect(0,0,paint.width,paint.height);hctx.clearRect(0,0,hud.width,hud.height);particles=[];
+}
+function ambientLoop(){
+  if(!ambient)return;
+  updateParticles();
+  pctx.save();pctx.globalCompositeOperation='destination-out';pctx.fillStyle='rgba(0,0,0,0.06)';pctx.fillRect(0,0,paint.width,paint.height);pctx.restore();
+  drawAttractFrame();
+  requestAnimationFrame(ambientLoop);
 }
 function demoLoop(){
   if(!demoRunning||running){ if(demoRunning){demoRunning=false;} return; }
@@ -392,6 +468,7 @@ function enterAttract(){attract=true;const a=document.createElement('canvas');a.
   savedAttract={symmetry,brush,rainbow,fade,art:a};symmetry='6';brush='neon';rainbow=true;fade=true;pctx.clearRect(0,0,paint.width,paint.height);attractPen={};attractT=0;statusEl.textContent='Idle demo. Raise your hand to paint';}
 function exitAttract(){attract=false;if(!savedAttract)return;symmetry=savedAttract.symmetry;brush=savedAttract.brush;rainbow=savedAttract.rainbow;fade=savedAttract.fade;pctx.clearRect(0,0,paint.width,paint.height);pctx.drawImage(savedAttract.art,0,0);savedAttract=null;refreshColorUI();statusEl.textContent=mode==='body'?'Raise a hand to paint':'Pinch to paint';}
 function drawAttractFrame(){attractT+=0.03;const cx=paint.width/2,cy=paint.height/2,R=Math.min(cx,cy);const rr=R*(0.25+0.55*(0.5+0.5*Math.sin(attractT*0.21)));const x=cx+Math.cos(attractT)*rr,y=cy+Math.sin(attractT*1.4)*rr;if(attractPen.init)stroke(attractPen.x,attractPen.y,x,y,attractPen,1);attractPen.x=x;attractPen.y=y;attractPen.lt=performance.now();attractPen.init=true;
+  if(ambient)return;   // the start prompt already says what to do
   hctx.save();hctx.fillStyle='rgba(184,168,255,0.55)';hctx.font='600 15px system-ui,sans-serif';hctx.textAlign='center';hctx.fillText(demoRunning?'Demo · no camera — click to go back':'Raise your hand to paint',cx,paint.height-22);hctx.restore();}
 function handColor(hd){const name=(hd&&hd[0])?hd[0].categoryName:'Right';return name==='Left'?COLORS[0]:COLORS[4];}
 
@@ -546,6 +623,7 @@ function toggleRecord(){
 
 refreshColorUI(); resize();
 statusEl.textContent='Ready. Press “Start camera”.';
+startAmbient();
 </script>
 </body>
 </html>
