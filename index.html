@@ -64,6 +64,12 @@ main { width: var(--w); max-width: 100%; display: flex; flex-direction: column; 
 /* The scrim is darkest behind the text and opens toward the edges, so the ambient brush preview stays visible. */
 .overlay { position: absolute; inset: 0; z-index: 5; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: var(--s-4); text-align: center; padding: var(--s-5); background: radial-gradient(ellipse 60% 55% at 50% 50%, rgba(10,8,16,0.94) 0%, rgba(10,8,16,0.8) 50%, rgba(10,8,16,0.35) 100%); transition: opacity var(--med) var(--ease); }
 .overlay.hidden { opacity: 0; pointer-events: none; }
+.stage-key { position: absolute; top: 10px; left: 10px; z-index: 4; display: flex; flex-direction: column; gap: 2px; padding: 8px 10px; border-radius: 10px; background: rgba(10,8,16,0.55); font-size: 12px; line-height: 1.5; color: rgba(255,255,255,0.82); pointer-events: none; opacity: 0; transition: opacity var(--med) var(--ease); }
+.stage.live:not(.view-mode) .stage-key { opacity: 1; }
+.stage-key .body-only { display: none; }
+.stage-key.body-mode .hands-only { display: none; }
+.stage-key.body-mode .body-only { display: inline; }
+@media (max-width: 560px) { .stage-key { flex-direction: row; flex-wrap: wrap; gap: 2px 10px; right: 10px; font-size: 11px; padding: 6px 8px; } }
 .overlay h2 { font-size: 22px; font-weight: 600; letter-spacing: -0.01em; }
 .overlay p { font-size: 15px; color: var(--text-2); max-width: 440px; line-height: 1.6; }
 .overlay p strong { color: var(--text); font-weight: 600; }
@@ -156,6 +162,17 @@ footer a:hover { color: var(--text); }
     <button class="big-btn" id="startBtn">Start camera</button>
     <button class="demo-link" id="demoBtn" type="button">No webcam? Watch the brush engine paint on its own →</button>
   </div>
+  <!-- Gesture reminder on the canvas itself, so it is in view while painting
+       and in fullscreen (where the key below the stage is not). -->
+  <div class="stage-key" id="stageKey" aria-hidden="true">
+    <span class="hands-only">🤏 Paint</span>
+    <span class="hands-only">✊ Clear</span>
+    <span class="hands-only">✋ Erase</span>
+    <span class="hands-only">✌️ Color</span>
+    <span class="hands-only">👎 Undo</span>
+    <span class="hands-only">👍 View</span>
+    <span class="body-only">🙆 Hand up to paint</span>
+  </div>
 </div>
 
 <div class="controls">
@@ -206,6 +223,7 @@ footer a:hover { color: var(--text); }
     <button class="btn" id="undoBtn">Undo</button>
     <button class="btn" id="clearBtn">Clear</button>
     <button class="btn" id="saveBtn">Save PNG</button>
+    <button class="btn" id="shareBtn" hidden>Share</button>
     <button class="btn" id="recBtn">Record</button>
     <button class="btn" id="stopCamBtn" style="display:none">Stop camera</button>
   </div>
@@ -292,6 +310,7 @@ document.querySelectorAll('.chip.sym').forEach(ch=>ch.addEventListener('click',(
 document.querySelectorAll('.chip.mode').forEach(ch=>ch.addEventListener('click',async()=>{
   document.querySelectorAll('.chip.mode').forEach(e=>e.classList.remove('on'));ch.classList.add('on');mode=ch.dataset.m;
   document.getElementById('key').classList.toggle('body-mode',mode==='body');
+  document.getElementById('stageKey').classList.toggle('body-mode',mode==='body');
   document.querySelectorAll('.body-only').forEach(e=>e.style.display=mode==='body'?'':'none');
   if(running){ setLoading('Loading '+(mode==='body'?'body':'hand')+' model'); try{await ensureModel();statusEl.textContent=mode==='body'?'Raise a hand to paint':'Pinch to paint';}catch(e){statusEl.textContent='Model load failed';} }
 }));
@@ -315,6 +334,7 @@ document.addEventListener('fullscreenchange',()=>{const st=document.getElementBy
 cam.style.transform=mirror?'scaleX(-1)':'none';
 function toggleView(){
   viewMode=!viewMode;
+  document.getElementById('stage').classList.toggle('view-mode',viewMode);
   cam.style.opacity = viewMode ? '0' : (showCam?'1':'0');
   if(viewMode)hctx.clearRect(0,0,hud.width,hud.height);
   statusEl.textContent = viewMode ? 'View mode. Painting paused (thumbs-up gesture to exit).' : (mode==='body'?'Raise a hand to paint':'Pinch to paint');
@@ -325,7 +345,18 @@ function clearCanvas(msg){pushUndo();pctx.clearRect(0,0,paint.width,paint.height
 document.getElementById('undoBtn').addEventListener('click',undo);
 function pushUndo(){const c=document.createElement('canvas');c.width=paint.width;c.height=paint.height;c.getContext('2d').drawImage(paint,0,0);undoStack.push(c);if(undoStack.length>12)undoStack.shift();}
 function undo(){if(!undoStack.length){statusEl.textContent='Nothing to undo';return;}const c=undoStack.pop();pctx.clearRect(0,0,paint.width,paint.height);pctx.drawImage(c,0,0);statusEl.textContent='Undo';}
-document.getElementById('saveBtn').addEventListener('click',()=>{const out=document.createElement('canvas');out.width=paint.width;out.height=paint.height;const o=out.getContext('2d');paintBg(o,out.width,out.height);o.drawImage(paint,0,0);o.drawImage(fx,0,0);const a=document.createElement('a');a.download='neural-canvas-'+Date.now()+'.png';a.href=out.toDataURL('image/png');a.click();statusEl.textContent='Saved';});
+function flatten(){const out=document.createElement('canvas');out.width=paint.width;out.height=paint.height;const o=out.getContext('2d');paintBg(o,out.width,out.height);o.drawImage(paint,0,0);o.drawImage(fx,0,0);return out;}
+document.getElementById('saveBtn').addEventListener('click',()=>{const a=document.createElement('a');a.download='neural-canvas-'+Date.now()+'.png';a.href=flatten().toDataURL('image/png');a.click();statusEl.textContent='Saved';});
+// Share straight to the phone's share sheet (Messages, Instagram, ...) where the
+// browser can share files; elsewhere the button stays hidden and Save PNG remains.
+(()=>{const btn=document.getElementById('shareBtn');
+  let ok=false;try{ok=!!(navigator.canShare&&navigator.canShare({files:[new File([''],'t.png',{type:'image/png'})]}));}catch(e){}
+  if(!ok)return; btn.hidden=false;
+  btn.addEventListener('click',()=>{flatten().toBlob(async blob=>{if(!blob)return;
+    const file=new File([blob],'neural-canvas-'+Date.now()+'.png',{type:'image/png'});
+    try{await navigator.share({files:[file],title:'Neural Canvas',text:'Painted in mid-air with my hands: '+location.href.split('#')[0]});statusEl.textContent='Shared';}
+    catch(e){if(e&&e.name!=='AbortError')statusEl.textContent='Could not share; use Save PNG instead';}
+  },'image/png');});})();
 document.getElementById('recBtn').addEventListener('click',toggleRecord);
 document.getElementById('aboutToggle').addEventListener('click',e=>{const open=document.getElementById('aboutBody').classList.toggle('open');e.currentTarget.setAttribute('aria-expanded',open);});
 
@@ -354,7 +385,7 @@ async function startCamera(){
     stream=await navigator.mediaDevices.getUserMedia({video:{width:{ideal:640},height:{ideal:480},frameRate:{ideal:60},facingMode:'user'},audio:false});
     cam.srcObject=stream; await new Promise(r=>{cam.onloadedmetadata=()=>{cam.play();r();};}); resize();
     setLoading('Loading model'); await ensureModel();
-    overlay.classList.add('hidden'); loadDots.classList.remove('on'); running=true; lastVideoTime=-1; lastSeenTime=performance.now();
+    overlay.classList.add('hidden'); loadDots.classList.remove('on'); running=true; document.getElementById('stage').classList.add('live'); lastVideoTime=-1; lastSeenTime=performance.now();
     statusEl.textContent=mode==='body'?'Raise a hand to paint':'Pinch to paint';
     document.getElementById('stopCamBtn').style.display='';
     requestAnimationFrame(loop);
@@ -422,7 +453,7 @@ function demoLoop(){
 // would bubble into the exit-demo listener startDemo() attaches to #stage.
 document.getElementById('demoBtn').addEventListener('click',e=>{e.stopPropagation();startDemo();});
 function stopCamera(){
-  if(!running&&!stream)return; running=false;
+  if(!running&&!stream)return; running=false; document.getElementById('stage').classList.remove('live');
   if(recording){if(recTimeout)clearTimeout(recTimeout);if(recorder&&recorder.state!=='inactive')recorder.stop();}
   if(stream){stream.getTracks().forEach(t=>t.stop());stream=null;} cam.srcObject=null;
   Object.keys(pens).forEach(id=>{pens[id].drawing=false;pens[id].fx=null;});
