@@ -4,6 +4,10 @@
 
 ▶ **Live:** https://danny-397.github.io/neural-canvas/ · **Repo:** https://github.com/Danny-397/neural-canvas
 
+🎬 **Demo clip (no webcam needed):** [docs/demo.mp4](https://github.com/Danny-397/neural-canvas/blob/main/docs/demo.mp4),
+a 12-second recording of the app's built-in demo mode, for judges who can't run the
+camera on the spot. Upload it as the Devpost video or link it from the gallery.
+
 ---
 
 ## Inspiration
