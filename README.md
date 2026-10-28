@@ -10,6 +10,12 @@
 
 ▶ **Live demo:** https://danny-397.github.io/neural-canvas/
 
+![The brush engine painting a six-fold neon pattern on its own](docs/demo.gif)
+
+*The app's built-in demo mode (no webcam): the brush engine drives itself, with
+six-fold symmetry, additive glow and a slow fade. With a camera, the stroke path is
+your fingertip. [MP4 version](docs/demo.mp4).*
+
 ---
 
 ## What it is
