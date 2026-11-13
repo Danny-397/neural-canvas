@@ -28,7 +28,7 @@ server-side anything. Nothing leaves the device.
 | Execution | WebAssembly + GPU delegate, `runningMode: VIDEO`, in-browser |
 | Rendering | Canvas 2D, additive blending, shadow-blur glow |
 | Smoothing | One-euro adaptive filter, implemented from scratch |
-| Source | One file, ~510 lines, zero dependencies beyond the model CDN |
+| Source | One file, ~660 lines, zero dependencies beyond the model CDN |
 
 ---
 
@@ -211,7 +211,7 @@ rather than a promise in a policy. There is no server to run, so the piece canno
 because something expired. And the source is one readable file, which for a hackathon
 submission means a judge can inspect the whole thing without a toolchain.
 
-The cost is real too: no module system, no type checking, and a 510-line file that is at the
+The cost is real too: no module system, no type checking, and a 660-line file that is at the
 upper limit of what is comfortable to navigate.
 
 ---
